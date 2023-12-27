@@ -1,6 +1,6 @@
-import os from "node:os";
-import { cssBundleHref } from "@remix-run/css-bundle";
-import { json, type LinksFunction } from "@remix-run/node";
+import os from 'node:os'
+import { cssBundleHref } from '@remix-run/css-bundle'
+import { json, type LinksFunction } from '@remix-run/node'
 import {
 	Link,
 	Links,
@@ -11,38 +11,33 @@ import {
 	ScrollRestoration,
 	useLoaderData,
 	type MetaFunction,
-} from "@remix-run/react";
-import faviconAssetUrl from "./assets/favicon.svg";
-import fontStylesheetUrl from "./styles/font.css";
-import tailwindStylesheetUrl from "./styles/tailwind.css";
-import { getEnv } from "./utils/env.server.ts";
+} from '@remix-run/react'
+import faviconAssetUrl from './assets/favicon.svg'
+import { KCDShop } from './kcdshop.tsx'
+import fontStylesheetUrl from './styles/font.css'
+import tailwindStylesheetUrl from './styles/tailwind.css'
+import { getEnv } from './utils/env.server.ts'
 
 export const links: LinksFunction = () => {
 	return [
-		{ rel: "icon", type: "image/svg+xml", href: faviconAssetUrl },
-		{ rel: "stylesheet", href: fontStylesheetUrl },
-		{ rel: "stylesheet", href: tailwindStylesheetUrl },
-		cssBundleHref ? { rel: "stylesheet", href: cssBundleHref } : null,
-	].filter(Boolean);
-};
-
-export async function loader() {
-	return json({ username: os.userInfo().username, ENV: getEnv() });
+		{ rel: 'icon', type: 'image/svg+xml', href: faviconAssetUrl },
+		{ rel: 'stylesheet', href: fontStylesheetUrl },
+		{ rel: 'stylesheet', href: tailwindStylesheetUrl },
+		cssBundleHref ? { rel: 'stylesheet', href: cssBundleHref } : null,
+	].filter(Boolean)
 }
 
-export const meta: MetaFunction = () => {
-	return [
-		{ title: "Epic Notes" },
-		{ name: "description", content: `Your own captain's log` },
-	];
-};
+export async function loader() {
+	return json({ username: os.userInfo().username, ENV: getEnv() })
+}
 
 export default function App() {
-	const data = useLoaderData<typeof loader>();
-
+	const data = useLoaderData<typeof loader>()
 	return (
 		<html lang="en" className="h-full overflow-x-hidden">
 			<head>
+				{/* 🐨 move the title and description to the meta export */}
+				{/* 🐨 add the Meta component here */}
 				<Meta />
 				<meta charSet="utf-8" />
 				<meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -80,8 +75,19 @@ export default function App() {
 					}}
 				/>
 				<Scripts />
+				<KCDShop />
 				<LiveReload />
 			</body>
 		</html>
-	);
+	)
+}
+
+// 🐨 add a meta export here
+// 🐨 you'll want a title and a description
+// 🐨 don't move the charSet or viewport though. We don't want to override those.
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'Epic Notes' },
+		{ name: 'description', content: `Your own captain's log` },
+	]
 }
