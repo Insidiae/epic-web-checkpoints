@@ -1,5 +1,10 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { Link, useLoaderData, type MetaFunction } from "@remix-run/react";
+import {
+	Link,
+	useLoaderData,
+	useRouteError,
+	type MetaFunction,
+} from "@remix-run/react";
 import { db } from "#app/utils/db.server.ts";
 import { invariantResponse } from "#app/utils/misc.tsx";
 
@@ -38,6 +43,17 @@ export default function ProfileRoute() {
 			<Link to="notes" className="underline" prefetch="intent">
 				Notes
 			</Link>
+		</div>
+	);
+}
+
+export function ErrorBoundary() {
+	const error = useRouteError();
+	console.error(error);
+
+	return (
+		<div className="container mx-auto flex h-full w-full items-center justify-center bg-destructive p-20 text-h2 text-destructive-foreground">
+			<p>Oh no, something went wrong. Sorry about that.</p>
 		</div>
 	);
 }
