@@ -1,6 +1,6 @@
-import os from "node:os";
-import { cssBundleHref } from "@remix-run/css-bundle";
-import { json, type LinksFunction } from "@remix-run/node";
+import os from 'node:os'
+import { cssBundleHref } from '@remix-run/css-bundle'
+import { json, type LinksFunction } from '@remix-run/node'
 import {
 	Link,
 	Links,
@@ -11,33 +11,31 @@ import {
 	ScrollRestoration,
 	useLoaderData,
 	type MetaFunction,
-} from "@remix-run/react";
-import faviconAssetUrl from "./assets/favicon.svg";
-import { GeneralErrorBoundary } from "./components/error-boundary.tsx";
-import fontStylesheetUrl from "./styles/font.css";
-import tailwindStylesheetUrl from "./styles/tailwind.css";
-import { getEnv } from "./utils/env.server.ts";
+} from '@remix-run/react'
+import faviconAssetUrl from './assets/favicon.svg'
+import { GeneralErrorBoundary } from './components/error-boundary.tsx'
+import { KCDShop } from './kcdshop.tsx'
+import fontStylesheetUrl from './styles/font.css'
+import tailwindStylesheetUrl from './styles/tailwind.css'
+import { getEnv } from './utils/env.server.ts'
 
 export const links: LinksFunction = () => {
 	return [
-		{ rel: "icon", type: "image/svg+xml", href: faviconAssetUrl },
-		{ rel: "stylesheet", href: fontStylesheetUrl },
-		{ rel: "stylesheet", href: tailwindStylesheetUrl },
-		cssBundleHref ? { rel: "stylesheet", href: cssBundleHref } : null,
-	].filter(Boolean);
-};
-
-export async function loader() {
-	return json({ username: os.userInfo().username, ENV: getEnv() });
+		{ rel: 'icon', type: 'image/svg+xml', href: faviconAssetUrl },
+		{ rel: 'stylesheet', href: fontStylesheetUrl },
+		{ rel: 'stylesheet', href: tailwindStylesheetUrl },
+		cssBundleHref ? { rel: 'stylesheet', href: cssBundleHref } : null,
+	].filter(Boolean)
 }
 
-export const meta: MetaFunction = () => {
-	return [
-		{ title: "Epic Notes" },
-		{ name: "description", content: `Your own captain's log` },
-	];
-};
+export async function loader() {
+	// throw new Error('🐨 root loader error')
+	return json({ username: os.userInfo().username, ENV: getEnv() })
+}
 
+// 🐨 Create a Document component here that renders almost everything that's in
+// the App with the exception of the visual stuff in the body. It should not
+// use useLoaderData because we can't rely on that in the error case.
 function Document({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" className="h-full overflow-x-hidden">
@@ -51,15 +49,18 @@ function Document({ children }: { children: React.ReactNode }) {
 				{children}
 				<ScrollRestoration />
 				<Scripts />
+				<KCDShop />
 				<LiveReload />
 			</body>
 		</html>
-	);
+	)
 }
 
 export default function App() {
-	const data = useLoaderData<typeof loader>();
-
+	// throw new Error('🐨 root component error')
+	const data = useLoaderData<typeof loader>()
+	// 🐨 replace most of this with the <Document> component and render the
+	// header, outlet, and footer inside of it.
 	return (
 		<Document>
 			<header className="container mx-auto py-6">
@@ -92,15 +93,23 @@ export default function App() {
 				}}
 			/>
 		</Document>
-	);
+	)
+}
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'Epic Notes' },
+		{ name: 'description', content: `Your own captain's log` },
+	]
 }
 
 export function ErrorBoundary() {
+	// 🐨 render the GeneralErrorBoundary in your new Document component.
 	return (
 		<Document>
 			<div className="flex-1">
 				<GeneralErrorBoundary />
 			</div>
 		</Document>
-	);
+	)
 }
