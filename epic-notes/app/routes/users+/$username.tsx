@@ -1,6 +1,7 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import { db } from "#app/utils/db.server.ts";
+import { invariantResponse } from "#app/utils/misc.tsx";
 
 export function loader({ params }: LoaderFunctionArgs) {
 	const user = db.user.findFirst({
@@ -9,8 +10,9 @@ export function loader({ params }: LoaderFunctionArgs) {
 		},
 	});
 
+	invariantResponse(user, "User not found", { status: 404 });
+
 	return json({
-		// @ts-expect-error 🦺 we'll fix this next
 		user: { name: user.name, username: user.username },
 	});
 }

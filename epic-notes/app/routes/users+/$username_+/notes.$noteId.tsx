@@ -1,6 +1,7 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { db } from "#app/utils/db.server.ts";
+import { invariantResponse } from "#app/utils/misc.tsx";
 
 export function loader({ params }: LoaderFunctionArgs) {
 	const note = db.note.findFirst({
@@ -9,8 +10,9 @@ export function loader({ params }: LoaderFunctionArgs) {
 		},
 	});
 
+	invariantResponse(note, "Note not found", { status: 404 });
+
 	return json({
-		// @ts-expect-error 🦺 we'll fix this next
 		note: { title: note.title, content: note.content },
 	});
 }

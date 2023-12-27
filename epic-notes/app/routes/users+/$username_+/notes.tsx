@@ -1,7 +1,7 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { Link, NavLink, Outlet, useLoaderData } from "@remix-run/react";
 import { db } from "#app/utils/db.server.ts";
-import { cn } from "#app/utils/misc.tsx";
+import { cn, invariantResponse } from "#app/utils/misc.tsx";
 
 export function loader({ params }: LoaderFunctionArgs) {
 	const owner = db.user.findFirst({
@@ -9,6 +9,8 @@ export function loader({ params }: LoaderFunctionArgs) {
 			username: { equals: params.username },
 		},
 	});
+
+	invariantResponse(owner, "Owner not found", { status: 404 });
 
 	const notes = db.note
 		.findMany({
@@ -26,7 +28,6 @@ export function loader({ params }: LoaderFunctionArgs) {
 export default function NotesRoute() {
 	const data = useLoaderData<typeof loader>();
 
-	// @ts-expect-error 🦺 we'll fix this next
 	const ownerDisplayName = data.owner.name ?? data.owner.username;
 	const navLinkDefaultClassName =
 		"line-clamp-2 block rounded-l-full py-2 pl-8 pr-6 text-base lg:text-xl";
