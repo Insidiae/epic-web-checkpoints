@@ -1,12 +1,6 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import {
-	Link,
-	isRouteErrorResponse,
-	useLoaderData,
-	useParams,
-	useRouteError,
-	type MetaFunction,
-} from "@remix-run/react";
+import { Link, useLoaderData, type MetaFunction } from "@remix-run/react";
+import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { db } from "#app/utils/db.server.ts";
 import { invariantResponse } from "#app/utils/misc.tsx";
 
@@ -50,18 +44,13 @@ export default function ProfileRoute() {
 }
 
 export function ErrorBoundary() {
-	const error = useRouteError();
-	const params = useParams();
-	console.error(error);
-
-	let errorMessage = <p>Oh no, something went wrong. Sorry about that.</p>;
-	if (isRouteErrorResponse(error) && error.status === 404) {
-		errorMessage = <p>No user with the username "{params.username}" exists</p>;
-	}
-
 	return (
-		<div className="container mx-auto flex h-full w-full items-center justify-center bg-destructive p-20 text-h2 text-destructive-foreground">
-			{errorMessage}
-		</div>
+		<GeneralErrorBoundary
+			statusHandlers={{
+				404: ({ params }) => (
+					<p>No user with the username "{params.username}" exists</p>
+				),
+			}}
+		/>
 	);
 }

@@ -5,6 +5,7 @@ import {
 	type ActionFunctionArgs,
 } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
+import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
 import { Button } from "#app/components/ui/button.tsx";
 import { Input } from "#app/components/ui/input.tsx";
@@ -80,5 +81,17 @@ export default function NoteEdit() {
 				</StatusButton>
 			</div>
 		</Form>
+	);
+}
+
+export function ErrorBoundary() {
+	return (
+		<GeneralErrorBoundary
+			statusHandlers={{
+				404: ({ params }) => (
+					<p>No note with the id "{params.noteId}" exists</p>
+				),
+			}}
+		/>
 	);
 }
