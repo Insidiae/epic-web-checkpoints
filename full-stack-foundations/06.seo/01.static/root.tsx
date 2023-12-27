@@ -1,6 +1,6 @@
-import os from "node:os";
-import { cssBundleHref } from "@remix-run/css-bundle";
-import { json, type LinksFunction } from "@remix-run/node";
+import os from 'node:os'
+import { cssBundleHref } from '@remix-run/css-bundle'
+import { json, type LinksFunction } from '@remix-run/node'
 import {
 	Link,
 	Links,
@@ -9,31 +9,41 @@ import {
 	Scripts,
 	ScrollRestoration,
 	useLoaderData,
-} from "@remix-run/react";
-import faviconAssetUrl from "./assets/favicon.svg";
-import fontStylesheetUrl from "./styles/font.css";
-import tailwindStylesheetUrl from "./styles/tailwind.css";
-import { getEnv } from "./utils/env.server.ts";
+} from '@remix-run/react'
+import faviconAssetUrl from './assets/favicon.svg'
+import { KCDShop } from './kcdshop.tsx'
+import fontStylesheetUrl from './styles/font.css'
+import tailwindStylesheetUrl from './styles/tailwind.css'
+import { getEnv } from './utils/env.server.ts'
 
 export const links: LinksFunction = () => {
 	return [
-		{ rel: "icon", type: "image/svg+xml", href: faviconAssetUrl },
-		{ rel: "stylesheet", href: fontStylesheetUrl },
-		{ rel: "stylesheet", href: tailwindStylesheetUrl },
-		cssBundleHref ? { rel: "stylesheet", href: cssBundleHref } : null,
-	].filter(Boolean);
-};
+		{ rel: 'icon', type: 'image/svg+xml', href: faviconAssetUrl },
+		{ rel: 'stylesheet', href: fontStylesheetUrl },
+		{ rel: 'stylesheet', href: tailwindStylesheetUrl },
+		cssBundleHref ? { rel: 'stylesheet', href: cssBundleHref } : null,
+	].filter(Boolean)
+}
 
 export async function loader() {
-	return json({ username: os.userInfo().username, ENV: getEnv() });
+	return json({ username: os.userInfo().username, ENV: getEnv() })
 }
 
 export default function App() {
-	const data = useLoaderData<typeof loader>();
-
+	const data = useLoaderData<typeof loader>()
 	return (
 		<html lang="en" className="h-full overflow-x-hidden">
 			<head>
+				{/*
+					🐨 add <title>
+					(use whatever you'd like for the title)
+					🐨 add <meta> for description
+					(use whatever you'd like for the description)
+					🐨 add <meta> for charSet
+					💰 here's a good charSet value: "utf-8"
+					🐨 add <meta> for and viewport
+					💰 here's a good viewport value: "width=device-width,initial-scale=1"
+				 */}
 				<title>Epic Notes</title>
 				<meta name="description" content="Your own captain's log" />
 				<meta charSet="utf-8" />
@@ -72,8 +82,9 @@ export default function App() {
 					}}
 				/>
 				<Scripts />
+				<KCDShop />
 				<LiveReload />
 			</body>
 		</html>
-	);
+	)
 }
