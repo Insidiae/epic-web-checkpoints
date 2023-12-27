@@ -1,4 +1,9 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import {
+	json,
+	redirect,
+	type LoaderFunctionArgs,
+	type ActionFunctionArgs,
+} from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
 import { Button } from "#app/components/ui/button.tsx";
@@ -22,6 +27,20 @@ export async function loader({ params }: LoaderFunctionArgs) {
 	return json({
 		note: { title: note.title, content: note.content },
 	});
+}
+
+export async function action({ request, params }: ActionFunctionArgs) {
+	const formData = await request.formData();
+	const title = formData.get("title");
+	const content = formData.get("content");
+
+	db.note.update({
+		where: { id: { equals: params.noteId } },
+		// @ts-expect-error 🦺 we'll fix this next...
+		data: { title, content },
+	});
+
+	return redirect(`/users/${params.username}/notes/${params.noteId}`);
 }
 
 export default function NoteEdit() {
