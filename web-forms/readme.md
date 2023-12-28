@@ -39,7 +39,12 @@ TODO: Add notes
 
 TODO: Add notes
 
-## 06. Honeypot
+## [06. Honeypot](./06.honeypot/)
+
+1. [Basic Honeypot](./06.honeypot/01.basic/)
+2. Remix Utils
+3. Honeypot Provider
+4. Encryption Seed
 
 TODO: Add notes
 
