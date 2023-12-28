@@ -82,12 +82,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	}
 
 	const { title, content, image } = submission.value;
-	await updateNote({
-		id: params.noteId,
-		title,
-		content,
-		images: [image],
-	});
+	await updateNote({ id: params.noteId, title, content, images: [image] });
 
 	return redirect(`/users/${params.username}/notes/${params.noteId}`);
 }
@@ -228,7 +223,11 @@ function ImageChooser({
 								</div>
 							)}
 							{existingImage ? (
-								<input {...conform.input(fields.id, { type: "hidden" })} />
+								<input
+									{...conform.input(fields.id, {
+										type: "hidden",
+									})}
+								/>
 							) : null}
 							<input
 								aria-label="Image"
@@ -247,9 +246,14 @@ function ImageChooser({
 									}
 								}}
 								accept="image/*"
-								{...conform.input(fields.file, { type: "file" })}
+								{...conform.input(fields.file, {
+									type: "file",
+								})}
 							/>
 						</label>
+					</div>
+					<div className="min-h-[32px] px-4 pb-3 pt-1">
+						<ErrorList id={fields.file.errorId} errors={fields.file.errors} />
 					</div>
 				</div>
 				<div className="flex-1">
@@ -258,7 +262,16 @@ function ImageChooser({
 						onChange={e => setAltText(e.currentTarget.value)}
 						{...conform.textarea(fields.altText)}
 					/>
+					<div className="min-h-[32px] px-4 pb-3 pt-1">
+						<ErrorList
+							id={fields.altText.errorId}
+							errors={fields.altText.errors}
+						/>
+					</div>
 				</div>
+			</div>
+			<div className="min-h-[32px] px-4 pb-3 pt-1">
+				<ErrorList id={config.errorId} errors={config.errors} />
 			</div>
 		</fieldset>
 	);
