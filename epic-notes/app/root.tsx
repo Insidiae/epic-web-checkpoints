@@ -57,7 +57,7 @@ function Document({ children }: { children: React.ReactNode }) {
 	);
 }
 
-export default function App() {
+function App() {
 	const data = useLoaderData<typeof loader>();
 
 	return (
@@ -93,6 +93,10 @@ export default function App() {
 			/>
 		</Document>
 	);
+}
+
+export default function AppWithProviders() {
+	return <App />;
 }
 
 export function ErrorBoundary() {
