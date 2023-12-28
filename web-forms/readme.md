@@ -51,7 +51,7 @@ TODO: Add notes
 ## [07. Cross-Site Request Forgery](./07.csrf/)
 
 1. [CSRF Setup](./07.csrf/01.setup/)
-2. CSRF Verification
+2. [CSRF Verification](./07.csrf/02.verification/)
 
 TODO: Add notes
 
