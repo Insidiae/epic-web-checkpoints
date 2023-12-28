@@ -76,14 +76,36 @@ app.use(morgan("tiny"));
 // have to wait for the rate limit to reset between tests.
 const limitMultiple = process.env.TESTING ? 10_000 : 1;
 
-app.use(
-	rateLimit({
-		windowMs: 60 * 1000, // 1 minute
-		limit: 1000 * limitMultiple, // Limit each IP to 1000 requests per `window` (here, per 1 minute)
-		standardHeaders: true, // Use standard draft-6 headers of `RateLimit-Policy` `RateLimit-Limit`, and `RateLimit-Remaining`
-		legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-	}),
-);
+const rateLimitDefault = {
+	windowMs: 60 * 1000, // 1 minute
+	limit: 1000 * limitMultiple, // Limit each IP to 1000 requests per `window` (here, per 1 minute)
+	standardHeaders: true, // Use standard draft-6 headers of `RateLimit-Policy` `RateLimit-Limit`, and `RateLimit-Remaining`
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+};
+
+const strongestRateLimit = rateLimit({
+	...rateLimitDefault,
+	limit: 10 * limitMultiple,
+});
+
+const strongRateLimit = rateLimit({
+	...rateLimitDefault,
+	limit: 100 * limitMultiple,
+});
+
+const generalRateLimit = rateLimit(rateLimitDefault);
+
+app.use((req, res, next) => {
+	const strongPaths = ["/signup"];
+	if (req.method !== "GET" && req.method !== "HEAD") {
+		if (strongPaths.some(p => req.path.includes(p))) {
+			return strongestRateLimit(req, res, next);
+		}
+		return strongRateLimit(req, res, next);
+	}
+
+	return generalRateLimit(req, res, next);
+});
 
 app.all(
 	"*",

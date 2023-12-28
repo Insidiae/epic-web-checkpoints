@@ -58,6 +58,6 @@ TODO: Add notes
 ## [08. Rate Limiting](./08.rate-limiting/)
 
 1. [Basic Rate Limiting](./08.rate-limiting/01.basic/)
-2. Tuned Rate Limiting
+2. [Tuned Rate Limiting](./08.rate-limiting/02.tuned/)
 
 TODO: Add notes
