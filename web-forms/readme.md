@@ -3,7 +3,7 @@
 ## [01. Form Validation](./01.form-validation/)
 
 1. [Form Validation](./01.form-validation/01.form-validation/)
-2. Server Validation
+2. [Server Validation](./01.form-validation/02.server-validation/)
 3. Disable Default Validation
 
 TODO: Add notes
