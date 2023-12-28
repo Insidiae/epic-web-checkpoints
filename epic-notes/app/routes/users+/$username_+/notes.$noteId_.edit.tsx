@@ -5,7 +5,7 @@ import {
 	type ActionFunctionArgs,
 } from "@remix-run/node";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
 import { Button } from "#app/components/ui/button.tsx";
@@ -114,8 +114,9 @@ function useHydrated() {
 export default function NoteEdit() {
 	const data = useLoaderData<typeof loader>();
 	const actionData = useActionData<typeof action>();
-	const isSubmitting = useIsSubmitting();
+	const formRef = useRef<HTMLFormElement>(null);
 	const formId = "note-editor";
+	const isSubmitting = useIsSubmitting();
 
 	const fieldErrors =
 		actionData?.status === "error" ? actionData.errors.fieldErrors : null;
@@ -134,6 +135,22 @@ export default function NoteEdit() {
 	const contentHasErrors = Boolean(fieldErrors?.content.length);
 	const contentErrorId = useId();
 
+	useEffect(() => {
+		const formEl = formRef.current;
+		if (formEl && actionData?.status === "error") {
+			if (formEl.matches(`[aria-invalid="true"]`)) {
+				formEl.focus();
+			} else {
+				const firstInvalid = formEl.querySelector<HTMLElement>(
+					`[aria-invalid="true"]`,
+				);
+				if (firstInvalid instanceof HTMLElement) {
+					firstInvalid.focus();
+				}
+			}
+		}
+	}, [actionData]);
+
 	return (
 		<div className="absolute inset-0">
 			<Form
@@ -143,6 +160,8 @@ export default function NoteEdit() {
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
 				aria-invalid={formHasErrors || undefined}
 				aria-describedby={formHasErrors ? formErrorId : undefined}
+				ref={formRef}
+				tabIndex={-1}
 			>
 				<div className="flex flex-col gap-1">
 					<div>
