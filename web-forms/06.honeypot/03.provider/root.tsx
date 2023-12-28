@@ -1,6 +1,6 @@
-import os from "node:os";
-import { cssBundleHref } from "@remix-run/css-bundle";
-import { json, type LinksFunction } from "@remix-run/node";
+import os from 'node:os'
+import { cssBundleHref } from '@remix-run/css-bundle'
+import { json, type LinksFunction } from '@remix-run/node'
 import {
 	Link,
 	Links,
@@ -11,35 +11,35 @@ import {
 	ScrollRestoration,
 	useLoaderData,
 	type MetaFunction,
-} from "@remix-run/react";
-import { HoneypotProvider } from "remix-utils/honeypot/react";
-import faviconAssetUrl from "./assets/favicon.svg";
-import { GeneralErrorBoundary } from "./components/error-boundary.tsx";
-import fontStylesheetUrl from "./styles/font.css";
-import tailwindStylesheetUrl from "./styles/tailwind.css";
-import { getEnv } from "./utils/env.server.ts";
-import { honeypot } from "./utils/honeypot.server.ts";
+} from '@remix-run/react'
+import { HoneypotProvider } from 'remix-utils/honeypot/react'
+import faviconAssetUrl from './assets/favicon.svg'
+import { GeneralErrorBoundary } from './components/error-boundary.tsx'
+import { KCDShop } from './kcdshop.tsx'
+import fontStylestylesheetUrl from './styles/font.css'
+import tailwindStylesheetUrl from './styles/tailwind.css'
+import { getEnv } from './utils/env.server.ts'
+import { honeypot } from './utils/honeypot.server.ts'
 
 export const links: LinksFunction = () => {
 	return [
-		{ rel: "icon", type: "image/svg+xml", href: faviconAssetUrl },
-		{ rel: "stylesheet", href: fontStylesheetUrl },
-		{ rel: "stylesheet", href: tailwindStylesheetUrl },
-		cssBundleHref ? { rel: "stylesheet", href: cssBundleHref } : null,
-	].filter(Boolean);
-};
-
-export async function loader() {
-	const honeyProps = honeypot.getInputProps();
-	return json({ username: os.userInfo().username, ENV: getEnv(), honeyProps });
+		{ rel: 'icon', type: 'image/svg+xml', href: faviconAssetUrl },
+		{ rel: 'stylesheet', href: fontStylestylesheetUrl },
+		{ rel: 'stylesheet', href: tailwindStylesheetUrl },
+		cssBundleHref ? { rel: 'stylesheet', href: cssBundleHref } : null,
+	].filter(Boolean)
 }
 
-export const meta: MetaFunction = () => {
-	return [
-		{ title: "Epic Notes" },
-		{ name: "description", content: `Your own captain's log` },
-	];
-};
+export async function loader() {
+	// 🐨 get the honeypot props from the honeypot object and add them to this
+	// object.
+	const honeyProps = honeypot.getInputProps()
+	return json({
+		username: os.userInfo().username,
+		ENV: getEnv(),
+		honeyProps,
+	})
+}
 
 function Document({ children }: { children: React.ReactNode }) {
 	return (
@@ -54,15 +54,15 @@ function Document({ children }: { children: React.ReactNode }) {
 				{children}
 				<ScrollRestoration />
 				<Scripts />
+				<KCDShop />
 				<LiveReload />
 			</body>
 		</html>
-	);
+	)
 }
 
 function App() {
-	const data = useLoaderData<typeof loader>();
-
+	const data = useLoaderData<typeof loader>()
 	return (
 		<Document>
 			<header className="container mx-auto py-6">
@@ -95,17 +95,26 @@ function App() {
 				}}
 			/>
 		</Document>
-	);
+	)
 }
 
 export default function AppWithProviders() {
-	const data = useLoaderData<typeof loader>();
+	// 💰 you'll need this:
+	const data = useLoaderData<typeof loader>()
 
+	// 🐨 render the HoneypotProvider here and pass the honeypot props
 	return (
 		<HoneypotProvider {...data.honeyProps}>
 			<App />
 		</HoneypotProvider>
-	);
+	)
+}
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'Epic Notes' },
+		{ name: 'description', content: `Your own captain's log` },
+	]
 }
 
 export function ErrorBoundary() {
@@ -115,5 +124,5 @@ export function ErrorBoundary() {
 				<GeneralErrorBoundary />
 			</div>
 		</Document>
-	);
+	)
 }
