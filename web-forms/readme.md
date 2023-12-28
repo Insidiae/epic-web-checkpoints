@@ -34,7 +34,7 @@ TODO: Add notes
 ## [05. Complex Structures](./05.complex-structures/)
 
 1. [Nested Object](./05.complex-structures/01.nested/)
-2. Field Lists
+2. [Field Lists](./05.complex-structures/02.lists/)
 3. Add / Remove Items
 
 TODO: Add notes
