@@ -5,6 +5,7 @@ import {
 	type ActionFunctionArgs,
 } from "@remix-run/node";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import { useEffect, useState } from "react";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
 import { Button } from "#app/components/ui/button.tsx";
@@ -98,6 +99,12 @@ function ErrorList({ errors }: { errors?: Array<string> | null }) {
 	) : null;
 }
 
+function useHydrated() {
+	const [hydrated, setHydrated] = useState(false);
+	useEffect(() => setHydrated(true), []);
+	return hydrated;
+}
+
 export default function NoteEdit() {
 	const data = useLoaderData<typeof loader>();
 	const actionData = useActionData<typeof action>();
@@ -109,11 +116,13 @@ export default function NoteEdit() {
 	const formErrors =
 		actionData?.status === "error" ? actionData.errors.formErrors : null;
 
+	const isHydrated = useHydrated();
+
 	return (
 		<div className="absolute inset-0">
 			<Form
 				id={formId}
-				noValidate
+				noValidate={isHydrated}
 				method="POST"
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
 			>
@@ -125,7 +134,7 @@ export default function NoteEdit() {
 							name="title"
 							defaultValue={data.note.title}
 							required
-							// maxLength={titleMaxLength}
+							maxLength={titleMaxLength}
 						/>
 						<div className="min-h-[32px] px-4 pb-3 pt-1">
 							<ErrorList errors={fieldErrors?.title} />
@@ -138,7 +147,7 @@ export default function NoteEdit() {
 							name="content"
 							defaultValue={data.note.content}
 							required
-							// maxLength={contentMaxLength}
+							maxLength={contentMaxLength}
 						/>
 						<div className="min-h-[32px] px-4 pb-3 pt-1">
 							<ErrorList errors={fieldErrors?.content} />
