@@ -1,95 +1,108 @@
-import { conform, useForm } from "@conform-to/react";
-import { getFieldsetConstraint, parse } from "@conform-to/zod";
+import { conform, useForm } from '@conform-to/react'
+import { getFieldsetConstraint, parse } from '@conform-to/zod'
 import {
 	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
 	json,
 	unstable_parseMultipartFormData as parseMultipartFormData,
 	redirect,
-	type LoaderFunctionArgs,
-	type ActionFunctionArgs,
-} from "@remix-run/node";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
-import { useState } from "react";
-import { z } from "zod";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
-import { Button } from "#app/components/ui/button.tsx";
-import { Input } from "#app/components/ui/input.tsx";
-import { Label } from "#app/components/ui/label.tsx";
-import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { Textarea } from "#app/components/ui/textarea.tsx";
-import { db, updateNote } from "#app/utils/db.server.ts";
-import { cn, invariantResponse, useIsSubmitting } from "#app/utils/misc.tsx";
+	type DataFunctionArgs,
+} from '@remix-run/node'
+import { Form, useActionData, useLoaderData } from '@remix-run/react'
+import { useState } from 'react'
+import { z } from 'zod'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { floatingToolbarClassName } from '#app/components/floating-toolbar.tsx'
+import { Button } from '#app/components/ui/button.tsx'
+import { Input } from '#app/components/ui/input.tsx'
+import { Label } from '#app/components/ui/label.tsx'
+import { StatusButton } from '#app/components/ui/status-button.tsx'
+import { Textarea } from '#app/components/ui/textarea.tsx'
+import { db, updateNote } from '#app/utils/db.server.ts'
+import { cn, invariantResponse, useIsSubmitting } from '#app/utils/misc.tsx'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: DataFunctionArgs) {
 	const note = db.note.findFirst({
 		where: {
 			id: {
 				equals: params.noteId,
 			},
 		},
-	});
-
-	invariantResponse(note, "Note not found", { status: 404 });
-
+	})
+	if (!note) {
+		throw new Response('Note not found', { status: 404 })
+	}
 	return json({
 		note: {
 			title: note.title,
 			content: note.content,
 			images: note.images.map(i => ({ id: i.id, altText: i.altText })),
 		},
-	});
+	})
 }
 
-const titleMaxLength = 100;
-const contentMaxLength = 10000;
+const titleMaxLength = 100
+const contentMaxLength = 10000
 
-const MAX_UPLOAD_SIZE = 1024 * 1024 * 3; // 3MB
+const MAX_UPLOAD_SIZE = 1024 * 1024 * 3 // 3MB
 
 const NoteEditorSchema = z.object({
-	title: z.string().min(1).max(titleMaxLength),
-	content: z.string().min(1).max(contentMaxLength),
-});
+	title: z.string().max(titleMaxLength),
+	content: z.string().max(contentMaxLength),
+})
 
-export async function action({ request, params }: ActionFunctionArgs) {
-	invariantResponse(params.noteId, "noteId param is required");
+export async function action({ request, params }: DataFunctionArgs) {
+	invariantResponse(params.noteId, 'noteId param is required')
 
+	// 🐨 switch this for parseMultipartFormData and createMemoryUploadHandler
+	// 🐨 set the `maxPartSize` setting to 3MB (💰 1024 * 1024 * 3) to prevent
+	// 🐨 users from uploading files that are too large.
 	const formData = await parseMultipartFormData(
 		request,
 		createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE }),
-	);
-	const submission = parse(formData, { schema: NoteEditorSchema });
+	)
+
+	const submission = parse(formData, {
+		schema: NoteEditorSchema,
+	})
 
 	if (!submission.value) {
-		return json({ status: "error", submission } as const, { status: 400 });
+		return json({ status: 'error', submission } as const, {
+			status: 400,
+		})
 	}
+	const { title, content } = submission.value
 
-	const { title, content } = submission.value;
 	await updateNote({
 		id: params.noteId,
 		title,
 		content,
+		// 🐨 add an images array and pass an object that has the
+		// id, file, and altText that was submitted.
+		// Right now, we're just going to grab these values straight from formData.
+		// 💰 formData.get('file'), etc.
+		// In the next step, we'll add this to the Zod schema.
+		// 🦺 TypeScript won't like this. We'll fix it in the next step, so don't worry about it.
 		images: [
 			{
 				// @ts-expect-error 🦺 we'll fix this in the next exercise
-				id: formData.get("imageId"),
+				id: formData.get('imageId'),
 				// @ts-expect-error 🦺 we'll fix this in the next exercise
-				file: formData.get("file"),
+				file: formData.get('file'),
 				// @ts-expect-error 🦺 we'll fix this in the next exercise
-				altText: formData.get("altText"),
+				altText: formData.get('altText'),
 			},
 		],
-	});
+	})
 
-	return redirect(`/users/${params.username}/notes/${params.noteId}`);
+	return redirect(`/users/${params.username}/notes/${params.noteId}`)
 }
 
 function ErrorList({
 	id,
 	errors,
 }: {
-	id?: string;
-	errors?: Array<string> | null;
+	id?: string
+	errors?: Array<string> | null
 }) {
 	return errors?.length ? (
 		<ul id={id} className="flex flex-col gap-1">
@@ -99,33 +112,34 @@ function ErrorList({
 				</li>
 			))}
 		</ul>
-	) : null;
+	) : null
 }
 
 export default function NoteEdit() {
-	const data = useLoaderData<typeof loader>();
-	const actionData = useActionData<typeof action>();
-	const isSubmitting = useIsSubmitting();
+	const data = useLoaderData<typeof loader>()
+	const actionData = useActionData<typeof action>()
+	const isSubmitting = useIsSubmitting()
 
 	const [form, fields] = useForm({
-		id: "note-editor",
+		id: 'note-editor',
 		constraint: getFieldsetConstraint(NoteEditorSchema),
 		lastSubmission: actionData?.submission,
 		onValidate({ formData }) {
-			return parse(formData, { schema: NoteEditorSchema });
+			return parse(formData, { schema: NoteEditorSchema })
 		},
 		defaultValue: {
 			title: data.note.title,
 			content: data.note.content,
 		},
-	});
+	})
 
 	return (
 		<div className="absolute inset-0">
 			<Form
-				method="POST"
+				method="post"
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
 				{...form.props}
+				// 🐨 add the encType="multipart/form-data" here
 				encType="multipart/form-data"
 			>
 				<div className="flex flex-col gap-1">
@@ -141,7 +155,7 @@ export default function NoteEdit() {
 					</div>
 					<div>
 						<Label htmlFor={fields.content.id}>Content</Label>
-						<Textarea {...conform.input(fields.content)} />
+						<Textarea {...conform.textarea(fields.content)} />
 						<div className="min-h-[32px] px-4 pb-3 pt-1">
 							<ErrorList
 								id={fields.content.errorId}
@@ -151,6 +165,7 @@ export default function NoteEdit() {
 					</div>
 					<div>
 						<Label>Image</Label>
+						{/* 🐨 render the ImageChooser and pass the note's first image as the image prop */}
 						<ImageChooser image={data.note.images[0]} />
 					</div>
 				</div>
@@ -164,25 +179,25 @@ export default function NoteEdit() {
 					form={form.id}
 					type="submit"
 					disabled={isSubmitting}
-					status={isSubmitting ? "pending" : "idle"}
+					status={isSubmitting ? 'pending' : 'idle'}
 				>
 					Submit
 				</StatusButton>
 			</div>
 		</div>
-	);
+	)
 }
 
 function ImageChooser({
 	image,
 }: {
-	image?: { id: string; altText?: string | null };
+	image?: { id: string; altText?: string | null }
 }) {
-	const existingImage = Boolean(image);
+	const existingImage = Boolean(image)
 	const [previewImage, setPreviewImage] = useState<string | null>(
 		existingImage ? `/resources/images/${image?.id}` : null,
-	);
-	const [altText, setAltText] = useState(image?.altText ?? "");
+	)
+	const [altText, setAltText] = useState(image?.altText ?? '')
 
 	return (
 		<fieldset>
@@ -191,17 +206,17 @@ function ImageChooser({
 					<div className="relative h-32 w-32">
 						<label
 							htmlFor="image-input"
-							className={cn("group absolute h-32 w-32 rounded-lg", {
-								"bg-accent opacity-40 focus-within:opacity-100 hover:opacity-100":
+							className={cn('group absolute h-32 w-32 rounded-lg', {
+								'bg-accent opacity-40 focus-within:opacity-100 hover:opacity-100':
 									!previewImage,
-								"cursor-pointer focus-within:ring-4": !existingImage,
+								'cursor-pointer focus-within:ring-4': !existingImage,
 							})}
 						>
 							{previewImage ? (
 								<div className="relative">
 									<img
 										src={previewImage}
-										alt={altText ?? ""}
+										alt={altText ?? ''}
 										className="h-32 w-32 rounded-lg object-cover"
 									/>
 									{existingImage ? null : (
@@ -215,6 +230,7 @@ function ImageChooser({
 									➕
 								</div>
 							)}
+							{/* 🐨 if there's an existing image, add a hidden input with a name "imageId" and the value set to the image's id */}
 							{existingImage ? (
 								<input name="imageId" type="hidden" value={image?.id} />
 							) : null}
@@ -223,20 +239,22 @@ function ImageChooser({
 								aria-label="Image"
 								className="absolute left-0 top-0 z-0 h-32 w-32 cursor-pointer opacity-0"
 								onChange={event => {
-									const file = event.target.files?.[0];
+									const file = event.target.files?.[0]
 
 									if (file) {
-										const reader = new FileReader();
+										const reader = new FileReader()
 										reader.onloadend = () => {
-											setPreviewImage(reader.result as string);
-										};
-										reader.readAsDataURL(file);
+											setPreviewImage(reader.result as string)
+										}
+										reader.readAsDataURL(file)
 									} else {
-										setPreviewImage(null);
+										setPreviewImage(null)
 									}
 								}}
+								// 🐨 add a name of "file" here:
 								name="file"
 								type="file"
+								// 🐨 add accept="image/*" here so users only upload images
 								accept="image/*"
 							/>
 						</label>
@@ -246,6 +264,7 @@ function ImageChooser({
 					<Label htmlFor="alt-text">Alt Text</Label>
 					<Textarea
 						id="alt-text"
+						// 🐨 add a name of "altText" here
 						name="altText"
 						defaultValue={altText}
 						onChange={e => setAltText(e.currentTarget.value)}
@@ -253,7 +272,7 @@ function ImageChooser({
 				</div>
 			</div>
 		</fieldset>
-	);
+	)
 }
 
 export function ErrorBoundary() {
@@ -265,5 +284,5 @@ export function ErrorBoundary() {
 				),
 			}}
 		/>
-	);
+	)
 }
