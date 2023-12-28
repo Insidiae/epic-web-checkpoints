@@ -5,23 +5,14 @@ import {
 } from "@remix-run/node";
 import { Form } from "@remix-run/react";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
-import { SpamError } from "remix-utils/honeypot/server";
 import { Button } from "#app/components/ui/button.tsx";
 import { Input } from "#app/components/ui/input.tsx";
 import { Label } from "#app/components/ui/label.tsx";
-import { honeypot } from "#app/utils/honeypot.server.ts";
+import { checkHoneypot } from "#app/utils/honeypot.server.ts";
 
 export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
-
-	try {
-		honeypot.check(formData);
-	} catch (error) {
-		if (error instanceof SpamError) {
-			throw new Response("Form not submitted properly", { status: 400 });
-		}
-		throw error;
-	}
+	checkHoneypot(formData);
 
 	// we'll implement signup later
 	return redirect("/");
