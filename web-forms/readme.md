@@ -48,7 +48,10 @@ TODO: Add notes
 
 TODO: Add notes
 
-## 07. Cross-Site Request Forgery
+## [07. Cross-Site Request Forgery](./07.csrf/)
+
+1. [CSRF Setup](./07.csrf/01.setup/)
+2. CSRF Verification
 
 TODO: Add notes
 

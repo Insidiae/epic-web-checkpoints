@@ -1,10 +1,10 @@
-import os from "node:os";
-import { cssBundleHref } from "@remix-run/css-bundle";
+import os from 'node:os'
+import { cssBundleHref } from '@remix-run/css-bundle'
 import {
+	type DataFunctionArgs,
 	json,
 	type LinksFunction,
-	type LoaderFunctionArgs,
-} from "@remix-run/node";
+} from '@remix-run/node'
 import {
 	Link,
 	Links,
@@ -15,43 +15,40 @@ import {
 	ScrollRestoration,
 	useLoaderData,
 	type MetaFunction,
-} from "@remix-run/react";
-import { HoneypotProvider } from "remix-utils/honeypot/react";
-import faviconAssetUrl from "./assets/favicon.svg";
-import { GeneralErrorBoundary } from "./components/error-boundary.tsx";
-import fontStylesheetUrl from "./styles/font.css";
-import tailwindStylesheetUrl from "./styles/tailwind.css";
-import { csrf } from "./utils/csrf.server.ts";
-import { getEnv } from "./utils/env.server.ts";
-import { honeypot } from "./utils/honeypot.server.ts";
+} from '@remix-run/react'
+import { HoneypotProvider } from 'remix-utils/honeypot/react'
+import faviconAssetUrl from './assets/favicon.svg'
+import { GeneralErrorBoundary } from './components/error-boundary.tsx'
+import { KCDShop } from './kcdshop.tsx'
+import fontStylestylesheetUrl from './styles/font.css'
+import tailwindStylesheetUrl from './styles/tailwind.css'
+import { csrf } from './utils/csrf.server.ts'
+import { getEnv } from './utils/env.server.ts'
+import { honeypot } from './utils/honeypot.server.ts'
 
 export const links: LinksFunction = () => {
 	return [
-		{ rel: "icon", type: "image/svg+xml", href: faviconAssetUrl },
-		{ rel: "stylesheet", href: fontStylesheetUrl },
-		{ rel: "stylesheet", href: tailwindStylesheetUrl },
-		cssBundleHref ? { rel: "stylesheet", href: cssBundleHref } : null,
-	].filter(Boolean);
-};
+		{ rel: 'icon', type: 'image/svg+xml', href: faviconAssetUrl },
+		{ rel: 'stylesheet', href: fontStylestylesheetUrl },
+		{ rel: 'stylesheet', href: tailwindStylesheetUrl },
+		cssBundleHref ? { rel: 'stylesheet', href: cssBundleHref } : null,
+	].filter(Boolean)
+}
 
-export async function loader({ request }: LoaderFunctionArgs) {
-	const honeyProps = honeypot.getInputProps();
-	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request);
+export async function loader({ request }: DataFunctionArgs) {
+	const honeyProps = honeypot.getInputProps()
+	// 🐨 get the csrfToken and csrfCookieHeader from csrf.commitToken
+	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request)
 
+	// 🐨 add the csrfToken to this object
+	// 🐨 add a 'set-cookie' header to the response with the csrfCookieHeader
 	return json(
 		{ username: os.userInfo().username, ENV: getEnv(), honeyProps, csrfToken },
 		{
-			headers: csrfCookieHeader ? { "set-cookie": csrfCookieHeader } : {},
+			headers: csrfCookieHeader ? { 'set-cookie': csrfCookieHeader } : {},
 		},
-	);
+	)
 }
-
-export const meta: MetaFunction = () => {
-	return [
-		{ title: "Epic Notes" },
-		{ name: "description", content: `Your own captain's log` },
-	];
-};
 
 function Document({ children }: { children: React.ReactNode }) {
 	return (
@@ -66,15 +63,15 @@ function Document({ children }: { children: React.ReactNode }) {
 				{children}
 				<ScrollRestoration />
 				<Scripts />
+				<KCDShop />
 				<LiveReload />
 			</body>
 		</html>
-	);
+	)
 }
 
 function App() {
-	const data = useLoaderData<typeof loader>();
-
+	const data = useLoaderData<typeof loader>()
 	return (
 		<Document>
 			<header className="container mx-auto py-6">
@@ -83,8 +80,8 @@ function App() {
 						<div className="font-light">epic</div>
 						<div className="font-bold">notes</div>
 					</Link>
-					<Link className="underline" to="/signup">
-						Signup
+					<Link className="underline" to="/users/kody/notes/d27a197e/edit">
+						Edit Kody's first note
 					</Link>
 				</nav>
 			</header>
@@ -107,17 +104,23 @@ function App() {
 				}}
 			/>
 		</Document>
-	);
+	)
 }
 
 export default function AppWithProviders() {
-	const data = useLoaderData<typeof loader>();
-
+	const data = useLoaderData<typeof loader>()
 	return (
 		<HoneypotProvider {...data.honeyProps}>
 			<App />
 		</HoneypotProvider>
-	);
+	)
+}
+
+export const meta: MetaFunction = () => {
+	return [
+		{ title: 'Epic Notes' },
+		{ name: 'description', content: `Your own captain's log` },
+	]
 }
 
 export function ErrorBoundary() {
@@ -127,5 +130,5 @@ export function ErrorBoundary() {
 				<GeneralErrorBoundary />
 			</div>
 		</Document>
-	);
+	)
 }
