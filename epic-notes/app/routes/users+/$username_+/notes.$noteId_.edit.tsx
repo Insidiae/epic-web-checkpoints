@@ -17,6 +17,7 @@ import {
 } from "@remix-run/node";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { useRef, useState } from "react";
+import { AuthenticityTokenInput } from "remix-utils/csrf/react";
 import { z } from "zod";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
@@ -25,6 +26,7 @@ import { Input } from "#app/components/ui/input.tsx";
 import { Label } from "#app/components/ui/label.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { Textarea } from "#app/components/ui/textarea.tsx";
+import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { db, updateNote } from "#app/utils/db.server.ts";
 import { cn, invariantResponse, useIsSubmitting } from "#app/utils/misc.tsx";
 
@@ -77,6 +79,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		request,
 		createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE }),
 	);
+	await validateCSRF(formData, request.headers);
+
 	const submission = parse(formData, { schema: NoteEditorSchema });
 
 	if (submission.intent !== "submit") {
@@ -139,11 +143,12 @@ export default function NoteEdit() {
 				{...form.props}
 				encType="multipart/form-data"
 			>
+				<AuthenticityTokenInput />
 				{/*
-				This hidden submit button is here to ensure that when the user hits
-				"enter" on an input field, the primary form function is submitted
-				rather than the first button in the form (which is delete/add image).
-			*/}
+					This hidden submit button is here to ensure that when the user hits
+					"enter" on an input field, the primary form function is submitted
+					rather than the first button in the form (which is delete/add image).
+				*/}
 				<button type="submit" className="hidden" />
 				<div className="flex flex-col gap-1">
 					<div>

@@ -1,10 +1,6 @@
 import os from "node:os";
 import { cssBundleHref } from "@remix-run/css-bundle";
-import {
-	json,
-	type LinksFunction,
-	type LoaderFunctionArgs,
-} from "@remix-run/node";
+import { json, type LinksFunction } from "@remix-run/node";
 import {
 	Link,
 	Links,
@@ -35,9 +31,9 @@ export const links: LinksFunction = () => {
 	].filter(Boolean);
 };
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader() {
 	const honeyProps = honeypot.getInputProps();
-	const [csrfToken, csrfCookieHeader] = await csrf.commitToken(request);
+	const [csrfToken, csrfCookieHeader] = await csrf.commitToken();
 
 	return json(
 		{ username: os.userInfo().username, ENV: getEnv(), honeyProps, csrfToken },
