@@ -1,3 +1,4 @@
+import { parse } from "@conform-to/zod";
 import {
 	json,
 	redirect,
@@ -49,18 +50,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	invariantResponse(params.noteId, "noteId param is required");
 
 	const formData = await request.formData();
-	const result = NoteEditorSchema.safeParse({
-		title: formData.get("title"),
-		content: formData.get("content"),
-	});
+	const submission = parse(formData, { schema: NoteEditorSchema });
 
-	if (!result.success) {
-		return json({ status: "error", errors: result.error.flatten() } as const, {
-			status: 400,
-		});
+	if (!submission.value) {
+		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	const { title, content } = result.data;
+	const { title, content } = submission.value;
 	await updateNote({ id: params.noteId, title, content });
 
 	return redirect(`/users/${params.username}/notes/${params.noteId}`);
@@ -98,9 +94,9 @@ export default function NoteEdit() {
 	const isSubmitting = useIsSubmitting();
 
 	const fieldErrors =
-		actionData?.status === "error" ? actionData.errors.fieldErrors : null;
+		actionData?.status === "error" ? actionData.submission.error : null;
 	const formErrors =
-		actionData?.status === "error" ? actionData.errors.formErrors : null;
+		actionData?.status === "error" ? actionData.submission.error[""] : null;
 
 	const isHydrated = useHydrated();
 
