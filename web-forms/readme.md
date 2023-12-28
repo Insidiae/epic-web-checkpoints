@@ -27,7 +27,7 @@ TODO: Add notes
 ## [04. File Upload](./04.file-upload/)
 
 1. [Multi-part form data](./04.file-upload/01.multi-part/)
-2. File Validation
+2. [File Validation](./04.file-upload/02.file-validation/)
 
 TODO: Add notes
 
