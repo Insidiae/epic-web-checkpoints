@@ -16,7 +16,11 @@ TODO: Add notes
 
 TODO: Add notes
 
-## 03. Schema Validation
+## [03. Schema Validation](./03.schema-validation/)
+
+1. [Zod schema validation](./03.schema-validation/01.zod/)
+2. Conform action utils
+3. Conform form utils
 
 TODO: Add notes
 
