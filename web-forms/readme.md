@@ -20,7 +20,7 @@ TODO: Add notes
 
 1. [Zod schema validation](./03.schema-validation/01.zod/)
 2. [Conform action utils](./03.schema-validation/02.conform-action/)
-3. Conform form utils
+3. [Conform form utils](./03.schema-validation/03.conform-form/)
 
 TODO: Add notes
 
