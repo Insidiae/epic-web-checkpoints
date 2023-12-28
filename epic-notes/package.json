@@ -12,7 +12,7 @@
     "build:server": "tsx ./other/build-server.ts",
     "dev": "remix dev --manual -c \"node ./server/dev-server.js\"",
     "test": "playwright test",
-    "start": "remix-serve build",
+    "start": "cross-env NODE_ENV=production node .",
     "lint": "eslint .",
     "typecheck": "tsc"
   },
@@ -24,6 +24,8 @@
     "/server-build"
   ],
   "dependencies": {
+    "@conform-to/react": "^0.9.1",
+    "@conform-to/zod": "^0.9.1",
     "@mswjs/data": "^0.14.0",
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-slot": "^1.0.2",
@@ -38,7 +40,9 @@
     "close-with-grace": "^1.2.0",
     "clsx": "^2.0.0",
     "compression": "^1.7.4",
+    "crypto-js": "^4.2.0",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
     "get-port": "^7.0.0",
     "glob": "^10.3.10",
     "isbot": "^3.7.0",
@@ -46,6 +50,7 @@
     "msw": "^2.0.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "remix-utils": "^7.4.0",
     "tailwind-merge": "^1.14.0",
     "tailwindcss": "^3.3.3",
     "tailwindcss-animate": "^1.0.7",
@@ -64,6 +69,7 @@
     "@types/react-dom": "^18.2.13",
     "autoprefixer": "^10.4.16",
     "chokidar": "^3.5.3",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
     "esbuild": "0.19.5",
     "eslint": "^8.51.0",
