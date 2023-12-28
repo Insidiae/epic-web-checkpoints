@@ -5,104 +5,105 @@ import {
 	useFieldset,
 	useForm,
 	type FieldConfig,
-} from "@conform-to/react";
-import { getFieldsetConstraint, parse } from "@conform-to/zod";
+} from '@conform-to/react'
+import { getFieldsetConstraint, parse } from '@conform-to/zod'
 import {
 	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
 	json,
 	unstable_parseMultipartFormData as parseMultipartFormData,
 	redirect,
-	type LoaderFunctionArgs,
-	type ActionFunctionArgs,
-} from "@remix-run/node";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
-import { useRef, useState } from "react";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
-import { z } from "zod";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
-import { Button } from "#app/components/ui/button.tsx";
-import { Input } from "#app/components/ui/input.tsx";
-import { Label } from "#app/components/ui/label.tsx";
-import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { Textarea } from "#app/components/ui/textarea.tsx";
-import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { db, updateNote } from "#app/utils/db.server.ts";
-import { cn, invariantResponse, useIsSubmitting } from "#app/utils/misc.tsx";
+	type DataFunctionArgs,
+} from '@remix-run/node'
+import { Form, useActionData, useLoaderData } from '@remix-run/react'
+import { useRef, useState } from 'react'
+import { z } from 'zod'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { floatingToolbarClassName } from '#app/components/floating-toolbar.tsx'
+import { Button } from '#app/components/ui/button.tsx'
+import { Input } from '#app/components/ui/input.tsx'
+import { Label } from '#app/components/ui/label.tsx'
+import { StatusButton } from '#app/components/ui/status-button.tsx'
+import { Textarea } from '#app/components/ui/textarea.tsx'
+import { db, updateNote } from '#app/utils/db.server.ts'
+import { cn, invariantResponse, useIsSubmitting } from '#app/utils/misc.tsx'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: DataFunctionArgs) {
 	const note = db.note.findFirst({
 		where: {
 			id: {
 				equals: params.noteId,
 			},
 		},
-	});
-
-	invariantResponse(note, "Note not found", { status: 404 });
-
+	})
+	if (!note) {
+		throw new Response('Note not found', { status: 404 })
+	}
 	return json({
 		note: {
 			title: note.title,
 			content: note.content,
 			images: note.images.map(i => ({ id: i.id, altText: i.altText })),
 		},
-	});
+	})
 }
 
-const titleMaxLength = 100;
-const contentMaxLength = 10000;
+const titleMaxLength = 100
+const contentMaxLength = 10000
 
-const MAX_UPLOAD_SIZE = 1024 * 1024 * 3; // 3MB
+const MAX_UPLOAD_SIZE = 1024 * 1024 * 3 // 3MB
 
 const ImageFieldsetSchema = z.object({
 	id: z.string().optional(),
 	file: z
 		.instanceof(File)
 		.refine(file => {
-			return file.size <= MAX_UPLOAD_SIZE;
-		}, "File size must be less than 3MB")
+			return file.size <= MAX_UPLOAD_SIZE
+		}, 'File size must be less than 3MB')
 		.optional(),
 	altText: z.string().optional(),
-});
+})
 
 const NoteEditorSchema = z.object({
 	title: z.string().max(titleMaxLength),
 	content: z.string().max(contentMaxLength),
 	images: z.array(ImageFieldsetSchema),
-});
+})
 
-export async function action({ request, params }: ActionFunctionArgs) {
-	invariantResponse(params.noteId, "noteId param is required");
+export async function action({ request, params }: DataFunctionArgs) {
+	invariantResponse(params.noteId, 'noteId param is required')
 
 	const formData = await parseMultipartFormData(
 		request,
 		createMemoryUploadHandler({ maxPartSize: MAX_UPLOAD_SIZE }),
-	);
-	await validateCSRF(formData, request.headers);
+	)
 
-	const submission = parse(formData, { schema: NoteEditorSchema });
+	const submission = parse(formData, {
+		schema: NoteEditorSchema,
+	})
 
-	if (submission.intent !== "submit") {
-		return json({ status: "idle", submission } as const);
+	// 🐨 If the submission.intent is not "submit" then return the submission with
+	// a status of 'idle' and the submission.
+	if (submission.intent !== 'submit') {
+		return json({ status: 'idle', submission } as const)
 	}
 
 	if (!submission.value) {
-		return json({ status: "error", submission } as const, { status: 400 });
+		return json({ status: 'error', submission } as const, {
+			status: 400,
+		})
 	}
+	const { title, content, images } = submission.value
+	await updateNote({ id: params.noteId, title, content, images })
 
-	const { title, content, images } = submission.value;
-	await updateNote({ id: params.noteId, title, content, images });
-
-	return redirect(`/users/${params.username}/notes/${params.noteId}`);
+	return redirect(`/users/${params.username}/notes/${params.noteId}`)
 }
 
 function ErrorList({
 	id,
 	errors,
 }: {
-	id?: string;
-	errors?: Array<string> | null;
+	id?: string
+	errors?: Array<string> | null
 }) {
 	return errors?.length ? (
 		<ul id={id} className="flex flex-col gap-1">
@@ -112,38 +113,40 @@ function ErrorList({
 				</li>
 			))}
 		</ul>
-	) : null;
+	) : null
 }
 
 export default function NoteEdit() {
-	const data = useLoaderData<typeof loader>();
-	const actionData = useActionData<typeof action>();
-	const isSubmitting = useIsSubmitting();
+	const data = useLoaderData<typeof loader>()
+	const actionData = useActionData<typeof action>()
+	const isSubmitting = useIsSubmitting()
 
 	const [form, fields] = useForm({
-		id: "note-editor",
+		id: 'note-editor',
 		constraint: getFieldsetConstraint(NoteEditorSchema),
 		lastSubmission: actionData?.submission,
 		onValidate({ formData }) {
-			return parse(formData, { schema: NoteEditorSchema });
+			return parse(formData, { schema: NoteEditorSchema })
 		},
 		defaultValue: {
 			title: data.note.title,
 			content: data.note.content,
 			images: data.note.images.length ? data.note.images : [{}],
 		},
-	});
-	const imageList = useFieldList(form.ref, fields.images);
+	})
+	const imageList = useFieldList(form.ref, fields.images)
 
 	return (
 		<div className="absolute inset-0">
 			<Form
-				method="POST"
+				method="post"
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
 				{...form.props}
 				encType="multipart/form-data"
 			>
-				<AuthenticityTokenInput />
+				{/* 🐨 add a hidden submit button here so the first button in the form is a submit button */}
+				{/* 🦉 otherwise, when the user hits [Enter] in the title input it'll trigger the first submit button which will delete an image instead of submit the form 😬 */}
+				{/* 💰 to hide it, you can use the tailwind class name "hidden" */}
 				{/*
 					This hidden submit button is here to ensure that when the user hits
 					"enter" on an input field, the primary form function is submitted
@@ -179,11 +182,15 @@ export default function NoteEdit() {
 									key={image.key}
 									className="relative border-b-2 border-muted-foreground"
 								>
+									{/* 🐨 add a delete button here with list.remove and fields.images.name */}
+									{/* 💰 here's a nice className="text-foreground-destructive absolute right-0 top-0" */}
+									{/* 🐨 you can use "❌" as the button text (we don't have app icons yet) */}
+									{/* 💯 if you have extra time, consider the screen reader experience. How could you make it better? */}
 									<button
 										className="text-foreground-destructive absolute right-0 top-0"
 										{...list.remove(fields.images.name, { index })}
 									>
-										<span aria-hidden>❌</span>{" "}
+										<span aria-hidden>❌</span>{' '}
 										<span className="sr-only">Remove image {index + 1}</span>
 									</button>
 									<ImageChooser config={image} />
@@ -191,11 +198,15 @@ export default function NoteEdit() {
 							))}
 						</ul>
 					</div>
+					{/* 🐨 add a button here with list.insert and fields.images.name to add another image */}
+					{/* 💰 you'll want to set the defaultValue to "{}" (otherwise it'll default to null which is invalid according to our schema) */}
+					{/* 🐨 you can use "➕ Image" as the button text */}
+					{/* 💯 if you have extra time, consider the screen reader experience. How could you make it better? */}
 					<Button
 						className="mt-3"
 						{...list.insert(fields.images.name, { defaultValue: {} })}
 					>
-						<span aria-hidden>➕ Image</span>{" "}
+						<span aria-hidden>➕ Image</span>{' '}
 						<span className="sr-only">Add image</span>
 					</Button>
 				</div>
@@ -209,28 +220,27 @@ export default function NoteEdit() {
 					form={form.id}
 					type="submit"
 					disabled={isSubmitting}
-					status={isSubmitting ? "pending" : "idle"}
+					status={isSubmitting ? 'pending' : 'idle'}
 				>
 					Submit
 				</StatusButton>
 			</div>
 		</div>
-	);
+	)
 }
 
 function ImageChooser({
 	config,
 }: {
-	config: FieldConfig<z.infer<typeof ImageFieldsetSchema>>;
+	config: FieldConfig<z.infer<typeof ImageFieldsetSchema>>
 }) {
-	const ref = useRef<HTMLFieldSetElement>(null);
-	const fields = useFieldset(ref, config);
-
-	const existingImage = Boolean(fields.id.defaultValue);
+	const ref = useRef<HTMLFieldSetElement>(null)
+	const fields = useFieldset(ref, config)
+	const existingImage = Boolean(fields.id.defaultValue)
 	const [previewImage, setPreviewImage] = useState<string | null>(
 		existingImage ? `/resources/images/${fields.id.defaultValue}` : null,
-	);
-	const [altText, setAltText] = useState(fields.altText.defaultValue ?? "");
+	)
+	const [altText, setAltText] = useState(fields.altText.defaultValue ?? '')
 
 	return (
 		<fieldset ref={ref} {...conform.fieldset(config)}>
@@ -239,17 +249,17 @@ function ImageChooser({
 					<div className="relative h-32 w-32">
 						<label
 							htmlFor={fields.file.id}
-							className={cn("group absolute h-32 w-32 rounded-lg", {
-								"bg-accent opacity-40 focus-within:opacity-100 hover:opacity-100":
+							className={cn('group absolute h-32 w-32 rounded-lg', {
+								'bg-accent opacity-40 focus-within:opacity-100 hover:opacity-100':
 									!previewImage,
-								"cursor-pointer focus-within:ring-4": !existingImage,
+								'cursor-pointer focus-within:ring-4': !existingImage,
 							})}
 						>
 							{previewImage ? (
 								<div className="relative">
 									<img
 										src={previewImage}
-										alt={altText ?? ""}
+										alt={altText ?? ''}
 										className="h-32 w-32 rounded-lg object-cover"
 									/>
 									{existingImage ? null : (
@@ -266,7 +276,7 @@ function ImageChooser({
 							{existingImage ? (
 								<input
 									{...conform.input(fields.id, {
-										type: "hidden",
+										type: 'hidden',
 									})}
 								/>
 							) : null}
@@ -274,21 +284,21 @@ function ImageChooser({
 								aria-label="Image"
 								className="absolute left-0 top-0 z-0 h-32 w-32 cursor-pointer opacity-0"
 								onChange={event => {
-									const file = event.target.files?.[0];
+									const file = event.target.files?.[0]
 
 									if (file) {
-										const reader = new FileReader();
+										const reader = new FileReader()
 										reader.onloadend = () => {
-											setPreviewImage(reader.result as string);
-										};
-										reader.readAsDataURL(file);
+											setPreviewImage(reader.result as string)
+										}
+										reader.readAsDataURL(file)
 									} else {
-										setPreviewImage(null);
+										setPreviewImage(null)
 									}
 								}}
 								accept="image/*"
 								{...conform.input(fields.file, {
-									type: "file",
+									type: 'file',
 								})}
 							/>
 						</label>
@@ -315,7 +325,7 @@ function ImageChooser({
 				<ErrorList id={config.errorId} errors={config.errors} />
 			</div>
 		</fieldset>
-	);
+	)
 }
 
 export function ErrorBoundary() {
@@ -327,5 +337,5 @@ export function ErrorBoundary() {
 				),
 			}}
 		/>
-	);
+	)
 }
