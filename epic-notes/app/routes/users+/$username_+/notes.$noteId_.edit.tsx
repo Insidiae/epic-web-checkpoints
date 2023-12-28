@@ -5,7 +5,7 @@ import {
 	type ActionFunctionArgs,
 } from "@remix-run/node";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
 import { Button } from "#app/components/ui/button.tsx";
@@ -118,6 +118,9 @@ export default function NoteEdit() {
 
 	const isHydrated = useHydrated();
 
+	const titleId = useId();
+	const contentId = useId();
+
 	return (
 		<div className="absolute inset-0">
 			<Form
@@ -128,9 +131,9 @@ export default function NoteEdit() {
 			>
 				<div className="flex flex-col gap-1">
 					<div>
-						{/* 🦉 NOTE: this is not an accessible label, we'll get to that in the accessibility exercises */}
-						<Label>Title</Label>
+						<Label htmlFor={titleId}>Title</Label>
 						<Input
+							id={titleId}
 							name="title"
 							defaultValue={data.note.title}
 							required
@@ -141,9 +144,9 @@ export default function NoteEdit() {
 						</div>
 					</div>
 					<div>
-						{/* 🦉 NOTE: this is not an accessible label, we'll get to that in the accessibility exercises */}
-						<Label>Content</Label>
+						<Label htmlFor={contentId}>Content</Label>
 						<Textarea
+							id={contentId}
 							name="content"
 							defaultValue={data.note.content}
 							required
@@ -157,8 +160,7 @@ export default function NoteEdit() {
 				<ErrorList errors={formErrors} />
 			</Form>
 			<div className={floatingToolbarClassName}>
-				<Button variant="destructive" type="reset">
-					{/* 🦉 NOTE: this button doesn't work right now, we'll get to that in the accessibility exercise */}
+				<Button form={formId} variant="destructive" type="reset">
 					Reset
 				</Button>
 				<StatusButton
