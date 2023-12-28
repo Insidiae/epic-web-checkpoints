@@ -87,9 +87,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	return redirect(`/users/${params.username}/notes/${params.noteId}`);
 }
 
-function ErrorList({ errors }: { errors?: Array<string> | null }) {
+function ErrorList({
+	id,
+	errors,
+}: {
+	id?: string;
+	errors?: Array<string> | null;
+}) {
 	return errors?.length ? (
-		<ul className="flex flex-col gap-1">
+		<ul id={id} className="flex flex-col gap-1">
 			{errors.map((error, i) => (
 				<li key={i} className="text-[10px] text-foreground-destructive">
 					{error}
@@ -121,6 +127,13 @@ export default function NoteEdit() {
 	const titleId = useId();
 	const contentId = useId();
 
+	const formHasErrors = Boolean(formErrors?.length);
+	const formErrorId = useId();
+	const titleHasErrors = Boolean(fieldErrors?.title.length);
+	const titleErrorId = useId();
+	const contentHasErrors = Boolean(fieldErrors?.content.length);
+	const contentErrorId = useId();
+
 	return (
 		<div className="absolute inset-0">
 			<Form
@@ -128,6 +141,8 @@ export default function NoteEdit() {
 				noValidate={isHydrated}
 				method="POST"
 				className="flex h-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden px-10 pb-28 pt-12"
+				aria-invalid={formHasErrors || undefined}
+				aria-describedby={formHasErrors ? formErrorId : undefined}
 			>
 				<div className="flex flex-col gap-1">
 					<div>
@@ -138,9 +153,15 @@ export default function NoteEdit() {
 							defaultValue={data.note.title}
 							required
 							maxLength={titleMaxLength}
+							aria-invalid={titleHasErrors || undefined}
+							aria-describedby={titleHasErrors ? titleErrorId : undefined}
+							autoFocus
 						/>
 						<div className="min-h-[32px] px-4 pb-3 pt-1">
-							<ErrorList errors={fieldErrors?.title} />
+							<ErrorList
+								id={titleHasErrors ? titleErrorId : undefined}
+								errors={fieldErrors?.title}
+							/>
 						</div>
 					</div>
 					<div>
@@ -151,13 +172,21 @@ export default function NoteEdit() {
 							defaultValue={data.note.content}
 							required
 							maxLength={contentMaxLength}
+							aria-invalid={contentHasErrors || undefined}
+							aria-describedby={contentHasErrors ? contentErrorId : undefined}
 						/>
 						<div className="min-h-[32px] px-4 pb-3 pt-1">
-							<ErrorList errors={fieldErrors?.content} />
+							<ErrorList
+								id={contentHasErrors ? contentErrorId : undefined}
+								errors={fieldErrors?.content}
+							/>
 						</div>
 					</div>
 				</div>
-				<ErrorList errors={formErrors} />
+				<ErrorList
+					id={formHasErrors ? formErrorId : undefined}
+					errors={formErrors}
+				/>
 			</Form>
 			<div className={floatingToolbarClassName}>
 				<Button form={formId} variant="destructive" type="reset">

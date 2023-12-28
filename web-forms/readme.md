@@ -11,7 +11,7 @@ TODO: Add notes
 ## [02. Accessibility](./02.accessibility/)
 
 1. [Field Labels](./02.accessibility/01.labels/)
-2. Validation aria attributes
+2. [Validation aria attributes](./02.accessibility/02.aria/)
 3. Focus Management
 
 TODO: Add notes
