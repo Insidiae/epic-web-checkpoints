@@ -19,6 +19,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // 🐨 once you've made the UserImage model, add an optional image property here
   image UserImage?
   notes Note[]
 }
@@ -34,31 +35,51 @@ model Note {
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   ownerId String
 
+  // 🐨 once you've made the NoteImage model, add an images property that's an
+  // array of NoteImage models
   images NoteImage[]
 }
 
+// 🐨 add the UserImage model here. It should have the following properties
 model UserImage {
+  // - id: similar to the other id properties we have so far
   id          String  @id @default(cuid())
+  // - altText: an optional string
   altText     String?
+  // - contentType: a required string
   contentType String
+  // - blob: a Bytes type
   blob        Bytes
 
+  // - createdAt: just like the others we have already
   createdAt DateTime @default(now())
+  // - updatedAt: just like the others we have already
   updatedAt DateTime @updatedAt
 
+  // - user: a user with a relationship attribute
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // - userId: a string with the @unique attribute establishing the one-to-one relationship
   userId String @unique
 }
 
+// 🐨 add the NoteImage model here. It should have the following properties
 model NoteImage {
+  // - id: similar to the other id properties we have so far
   id          String  @id @default(cuid())
+  // - altText: an optional string
   altText     String?
+  // - contentType: a required string
   contentType String
+  // - blob: a Bytes type
   blob        Bytes
 
+  // - createdAt: just like the others we have already
   createdAt DateTime @default(now())
+  // - updatedAt: just like the others we have already
   updatedAt DateTime @updatedAt
 
+  // - note: a note with a relationship attribute
   note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // - noteId: a string
   noteId String
 }
