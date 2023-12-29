@@ -10,26 +10,25 @@ import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
 import { Button } from "#app/components/ui/button.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { db } from "#app/utils/db.server.ts";
+import { prisma, db } from "#app/utils/db.server.ts";
 import { getNoteImgSrc, invariantResponse } from "#app/utils/misc.tsx";
 import { type loader as notesLoader } from "./notes.tsx";
 
-export function loader({ params }: LoaderFunctionArgs) {
-	const note = db.note.findFirst({
-		where: {
-			id: { equals: params.noteId },
+export async function loader({ params }: LoaderFunctionArgs) {
+	const note = await prisma.note.findFirst({
+		select: {
+			title: true,
+			content: true,
+			images: {
+				select: { id: true, altText: true },
+			},
 		},
+		where: { id: params.noteId },
 	});
 
 	invariantResponse(note, "Note not found", { status: 404 });
 
-	return json({
-		note: {
-			title: note.title,
-			content: note.content,
-			images: note.images.map(i => ({ id: i.id, altText: i.altText })),
-		},
-	});
+	return json({ note });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {

@@ -28,7 +28,7 @@ import { Label } from "#app/components/ui/label.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { Textarea } from "#app/components/ui/textarea.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { db, updateNote } from "#app/utils/db.server.ts";
+import { prisma } from "#app/utils/db.server.ts";
 import {
 	cn,
 	getNoteImgSrc,
@@ -37,10 +37,13 @@ import {
 } from "#app/utils/misc.tsx";
 
 export async function loader({ params }: LoaderFunctionArgs) {
-	const note = db.note.findFirst({
-		where: {
-			id: {
-				equals: params.noteId,
+	const note = await prisma.note.findFirst({
+		where: { id: params.noteId },
+		select: {
+			title: true,
+			content: true,
+			images: {
+				select: { id: true, altText: true },
 			},
 		},
 	});
@@ -74,6 +77,20 @@ const ImageFieldsetSchema = z.object({
 	altText: z.string().optional(),
 });
 
+type ImageFieldset = z.infer<typeof ImageFieldsetSchema>;
+
+function imageHasFile(
+	image: ImageFieldset,
+): image is ImageFieldset & { file: NonNullable<ImageFieldset["file"]> } {
+	return Boolean(image.file?.size && image.file?.size > 0);
+}
+
+function imageHasId(
+	image: ImageFieldset,
+): image is ImageFieldset & { id: NonNullable<ImageFieldset["id"]> } {
+	return image.id != null;
+}
+
 const NoteEditorSchema = z.object({
 	title: z.string().min(titleMinLength).max(titleMaxLength),
 	content: z.string().min(contentMinLength).max(contentMaxLength),
@@ -89,7 +106,40 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	);
 	await validateCSRF(formData, request.headers);
 
-	const submission = parse(formData, { schema: NoteEditorSchema });
+	const submission = await parse(formData, {
+		schema: NoteEditorSchema.transform(async ({ images = [], ...data }) => {
+			return {
+				...data,
+				imageUpdates: await Promise.all(
+					images.filter(imageHasId).map(async i => {
+						if (imageHasFile(i)) {
+							return {
+								id: i.id,
+								altText: i.altText,
+								contentType: i.file.type,
+								blob: Buffer.from(await i.file.arrayBuffer()),
+							};
+						} else {
+							return { id: i.id, altText: i.altText };
+						}
+					}),
+				),
+				newImages: await Promise.all(
+					images
+						.filter(imageHasFile)
+						.filter(i => !i.id)
+						.map(async image => {
+							return {
+								altText: image.altText,
+								contentType: image.file.type,
+								blob: Buffer.from(await image.file.arrayBuffer()),
+							};
+						}),
+				),
+			};
+		}),
+		async: true,
+	});
 
 	if (submission.intent !== "submit") {
 		return json({ status: "idle", submission } as const);
@@ -99,8 +149,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	const { title, content, images = [] } = submission.value;
-	await updateNote({ id: params.noteId, title, content, images });
+	// const { title, content, images = [] } = submission.value;
+	// await updateNote({ id: params.noteId, title, content, images });
+	// TODO: you need to handle the update for these in the next exercise...
 
 	return redirect(`/users/${params.username}/notes/${params.noteId}`);
 }
