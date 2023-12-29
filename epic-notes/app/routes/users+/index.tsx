@@ -11,6 +11,7 @@ const UserSearchResultSchema = z.object({
 	id: z.string(),
 	username: z.string(),
 	name: z.string().nullable(),
+	imageId: z.string().nullable(),
 });
 
 const UserSearchResultsSchema = z.array(UserSearchResultSchema);
@@ -23,10 +24,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 	const like = `%${searchTerm ?? ""}%`;
 	const rawUsers = await prisma.$queryRaw`
-		SELECT id, username, name
+		SELECT User.id, User.username, User.name, UserImage.id AS imageId
 		FROM User
-		WHERE username LIKE ${like}
-		OR name LIKE ${like}
+		LEFT JOIN UserImage ON UserImage.userId = User.id
+		WHERE User.username LIKE ${like}
+		OR User.name LIKE ${like}
 		LIMIT 50
 	`;
 	const result = UserSearchResultsSchema.safeParse(rawUsers);
@@ -70,8 +72,7 @@ export default function UsersRoute() {
 									>
 										<img
 											alt={user.name ?? user.username}
-											// @ts-expect-error 🦺 we'll fix this next
-											src={getUserImgSrc(user.image?.id)}
+											src={getUserImgSrc(user.imageId)}
 											className="h-16 w-16 rounded-full"
 										/>
 										{user.name ? (
