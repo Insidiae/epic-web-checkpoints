@@ -60,9 +60,9 @@ TODO: Add notes
 
 TODO: Add notes
 
-## 09. Query Optimization
+## [09. Query Optimization](./09.optimize/)
 
-1.  Foreign Keys
+1.  [Foreign Keys](./09.optimize/01.foreign-keys/)
 2.  Multi-Column Index
 
 TODO: Add notes

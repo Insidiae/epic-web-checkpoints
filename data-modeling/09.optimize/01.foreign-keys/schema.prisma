@@ -36,8 +36,26 @@ model Note {
 
   images NoteImage[]
 
+  // 🐨 add an index for the ownerId here
   // non-unique foreign key
   @@index([ownerId])
+}
+
+model NoteImage {
+  id          String  @id @default(cuid())
+  altText     String?
+  contentType String
+  blob        Bytes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  noteId String
+
+  // 🐨 add an index for the noteId here
+  // non-unique foreign key
+  @@index([noteId])
 }
 
 model UserImage {
@@ -53,20 +71,4 @@ model UserImage {
   userId String @unique
 
   // No index necessary for userId because it's unique
-}
-
-model NoteImage {
-  id          String  @id @default(cuid())
-  altText     String?
-  contentType String
-  blob        Bytes
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  noteId String
-
-  // non-unique foreign key
-  @@index([noteId])
 }
