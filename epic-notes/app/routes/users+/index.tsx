@@ -1,9 +1,19 @@
 import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
+import { z } from "zod";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
+import { ErrorList } from "#app/components/forms.tsx";
 import { SearchBar } from "#app/components/search-bar.tsx";
 import { prisma } from "#app/utils/db.server.ts";
 import { cn, getUserImgSrc, useDelayedIsPending } from "#app/utils/misc.tsx";
+
+const UserSearchResultSchema = z.object({
+	id: z.string(),
+	username: z.string(),
+	name: z.string().nullable(),
+});
+
+const UserSearchResultsSchema = z.array(UserSearchResultSchema);
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const searchTerm = new URL(request.url).searchParams.get("search");
@@ -12,15 +22,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	}
 
 	const like = `%${searchTerm ?? ""}%`;
-	const users = await prisma.$queryRaw`
+	const rawUsers = await prisma.$queryRaw`
 		SELECT id, username, name
 		FROM User
 		WHERE username LIKE ${like}
 		OR name LIKE ${like}
 		LIMIT 50
 	`;
+	const result = UserSearchResultsSchema.safeParse(rawUsers);
 
-	return json({ status: "idle", users } as const);
+	if (!result.success) {
+		return json({ status: "error", error: result.error.message } as const, {
+			status: 400,
+		});
+	}
+
+	return json({ status: "idle", users: result.data } as const);
 }
 
 export default function UsersRoute() {
@@ -38,7 +55,6 @@ export default function UsersRoute() {
 			</div>
 			<main>
 				{data.status === "idle" ? (
-					// @ts-expect-error 🦺 we'll fix this next
 					data.users.length ? (
 						<ul
 							className={cn(
@@ -46,7 +62,6 @@ export default function UsersRoute() {
 								{ "opacity-50": isPending },
 							)}
 						>
-							{/* @ts-expect-error 🦺 we'll fix this next */}
 							{data.users.map(user => (
 								<li key={user.id}>
 									<Link
@@ -55,6 +70,7 @@ export default function UsersRoute() {
 									>
 										<img
 											alt={user.name ?? user.username}
+											// @ts-expect-error 🦺 we'll fix this next
 											src={getUserImgSrc(user.image?.id)}
 											className="h-16 w-16 rounded-full"
 										/>
@@ -73,6 +89,8 @@ export default function UsersRoute() {
 					) : (
 						<p>No users found</p>
 					)
+				) : data.status === "error" ? (
+					<ErrorList errors={["There was an error parsing the results"]} />
 				) : null}
 			</main>
 		</div>

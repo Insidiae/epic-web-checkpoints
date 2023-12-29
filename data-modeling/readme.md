@@ -54,7 +54,7 @@ TODO: Add notes
 ## [08. SQL](./08.sql/)
 
 1. [Raw SQL](./08.sql/01.sql/)
-2. Validation
+2. [Validation](./08.sql/02.validation/)
 3. Joins
 4. Order By
 
