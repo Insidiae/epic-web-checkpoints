@@ -6,9 +6,9 @@
 
 TODO: Add notes
 
-## 02. Data Relationships
+## [02. Data Relationships](./02.relationships/`)
 
-1. One-to-Many Relationships
+1. [One-to-Many Relationships](./02.relationships/01.one-to-many/)
 2. One-to-One Relationships
 
 TODO: Add notes
