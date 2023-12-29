@@ -42,9 +42,9 @@ TODO: Add notes
 
 TODO: Add notes
 
-## 07. Updating Data
+## [07. Updating Data](./07.updating/)
 
-1. Delete
+1. [Delete](./01.schema/01.init/)
 2. Update
 3. Transactions
 4. Nested Update
