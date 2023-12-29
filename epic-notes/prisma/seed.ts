@@ -1,9 +1,30 @@
 import fs from "node:fs";
+import { faker } from "@faker-js/faker";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 await prisma.user.deleteMany();
+
+await prisma.user.create({
+	data: {
+		email: faker.internet.email(),
+		username: faker.internet.userName(),
+		name: faker.person.fullName(),
+		notes: {
+			create: [
+				{
+					title: faker.lorem.sentence(),
+					content: faker.lorem.paragraphs(),
+				},
+				{
+					title: faker.lorem.sentence(),
+					content: faker.lorem.paragraphs(),
+				},
+			],
+		},
+	},
+});
 
 await prisma.user.create({
 	data: {

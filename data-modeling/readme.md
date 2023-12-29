@@ -26,9 +26,9 @@ TODO: Add notes
 
 TODO: Add notes
 
-## 05. Generating Seed Data
+## [05. Generating Seed Data](./05.generated/)
 
-1. Generated Data
+1. [Generated Data](./05.generated/01.generated/)
 2. Dynamic Data
 3. Unique Constraints
 
