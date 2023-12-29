@@ -63,6 +63,7 @@ TODO: Add notes
 ## [09. Query Optimization](./09.optimize/)
 
 1.  [Foreign Keys](./09.optimize/01.foreign-keys/)
-2.  Multi-Column Index
+2.  [Multi-Column Index](./09.optimize/02.multi-column-index/)
 
 TODO: Add notes
+TODO: Re-read/watch the lesson at Exercise 9.2
