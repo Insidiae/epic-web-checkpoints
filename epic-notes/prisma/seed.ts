@@ -1,34 +1,42 @@
-import fs from 'node:fs'
-import { PrismaClient } from '@prisma/client'
+import fs from "node:fs";
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-const firstNote = await prisma.note.findFirst()
+await prisma.user.deleteMany();
 
-if (!firstNote) {
-	throw new Error('You need to have a note in the database first')
-}
-
-await prisma.note.update({
-	where: { id: firstNote.id },
+const kody = await prisma.user.create({
 	data: {
+		email: "kody@kcd.dev",
+		username: "kody",
+		name: "Kody",
+	},
+});
+
+await prisma.note.create({
+	data: {
+		id: "d27a197e",
+		title: "Basic Koala Facts",
+		content:
+			"Koalas are found in the eucalyptus forests of eastern Australia. They have grey fur with a cream-coloured chest, and strong, clawed feet, perfect for living in the branches of trees!",
+		ownerId: kody.id,
 		images: {
 			create: [
 				{
-					altText: 'an adorable koala cartoon illustration',
-					contentType: 'image/png',
+					altText: "an adorable koala cartoon illustration",
+					contentType: "image/png",
 					blob: await fs.promises.readFile(
-						'./tests/fixtures/images/kody-notes/cute-koala.png',
+						"./tests/fixtures/images/kody-notes/cute-koala.png",
 					),
 				},
 				{
-					altText: 'a cartoon illustration of a koala in a tree eating',
-					contentType: 'image/png',
+					altText: "a cartoon illustration of a koala in a tree eating",
+					contentType: "image/png",
 					blob: await fs.promises.readFile(
-						'./tests/fixtures/images/kody-notes/koala-eating.png',
+						"./tests/fixtures/images/kody-notes/koala-eating.png",
 					),
 				},
 			],
 		},
 	},
-})
+});
