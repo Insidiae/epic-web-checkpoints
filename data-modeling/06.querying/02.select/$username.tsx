@@ -1,13 +1,24 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { Link, useLoaderData, type MetaFunction } from "@remix-run/react";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { Spacer } from "#app/components/spacer.tsx";
-import { Button } from "#app/components/ui/button.tsx";
-import { prisma } from "#app/utils/db.server.ts";
-import { getUserImgSrc, invariantResponse } from "#app/utils/misc.tsx";
+import { json, type DataFunctionArgs } from '@remix-run/node'
+import { Link, useLoaderData, type MetaFunction } from '@remix-run/react'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { Spacer } from '#app/components/spacer.tsx'
+import { Button } from '#app/components/ui/button.tsx'
+// 🐨 swap "db" for "prisma"
+// import { db } from '#app/utils/db.server.ts'
+import { prisma } from '#app/utils/db.server.ts'
+import { getUserImgSrc, invariantResponse } from '#app/utils/misc.tsx'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: DataFunctionArgs) {
+	// 🐨 delete this query for one using prisma
+	// const user = db.user.findFirst({
+	// 	where: {
+	// 		username: {
+	// 			equals: params.username,
+	// 		},
+	// 	},
+	// })
 	const user = await prisma.user.findFirst({
+		// 🐨 make sure to use `select` to only get the fields we care about.
 		select: {
 			name: true,
 			username: true,
@@ -19,32 +30,28 @@ export async function loader({ params }: LoaderFunctionArgs) {
 				equals: params.username,
 			},
 		},
-	});
+	})
 
-	invariantResponse(user, "User not found", { status: 404 });
+	invariantResponse(user, 'User not found', { status: 404 })
 
+	// 🐨 you can just return the user here since we're selecting just the bits
+	// that matter in the query above.
 	return json({
+		// user: {
+		// 	name: user.name,
+		// 	username: user.username,
+		// 	image: user.image ? { id: user.image.id } : undefined,
+		// },
 		user,
+		// 🦉 we still want to keep this
 		userJoinedDisplay: new Date(user.createdAt).toLocaleDateString(),
-	});
+	})
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data, params }) => {
-	const displayName = data?.user.name ?? params.username;
-
-	return [
-		{ title: `${displayName} | Epic Notes` },
-		{
-			name: "description",
-			content: `Profile of ${displayName} on Epic Notes`,
-		},
-	];
-};
-
 export default function ProfileRoute() {
-	const data = useLoaderData<typeof loader>();
-	const user = data.user;
-	const userDisplayName = user.name ?? user.username;
+	const data = useLoaderData<typeof loader>()
+	const user = data.user
+	const userDisplayName = user.name ?? user.username
 
 	return (
 		<div className="container mb-48 mt-36 flex flex-col items-center justify-center">
@@ -82,7 +89,18 @@ export default function ProfileRoute() {
 				</div>
 			</div>
 		</div>
-	);
+	)
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data, params }) => {
+	const displayName = data?.user.name ?? params.username
+	return [
+		{ title: `${displayName} | Epic Notes` },
+		{
+			name: 'description',
+			content: `Profile of ${displayName} on Epic Notes`,
+		},
+	]
 }
 
 export function ErrorBoundary() {
@@ -94,5 +112,5 @@ export function ErrorBoundary() {
 				),
 			}}
 		/>
-	);
+	)
 }
