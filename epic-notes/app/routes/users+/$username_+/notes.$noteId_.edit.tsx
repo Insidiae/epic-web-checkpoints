@@ -7,6 +7,7 @@ import {
 	type FieldConfig,
 } from "@conform-to/react";
 import { getFieldsetConstraint, parse } from "@conform-to/zod";
+import { createId as cuid } from "@paralleldrive/cuid2";
 import {
 	unstable_createMemoryUploadHandler as createMemoryUploadHandler,
 	json,
@@ -21,20 +22,29 @@ import { AuthenticityTokenInput } from "remix-utils/csrf/react";
 import { z } from "zod";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
+import { ErrorList, Field, TextareaField } from "#app/components/forms.tsx";
 import { Button } from "#app/components/ui/button.tsx";
-import { Input } from "#app/components/ui/input.tsx";
+import { Icon } from "#app/components/ui/icon.tsx";
 import { Label } from "#app/components/ui/label.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { Textarea } from "#app/components/ui/textarea.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { db, updateNote } from "#app/utils/db.server.ts";
-import { cn, invariantResponse, useIsSubmitting } from "#app/utils/misc.tsx";
+import { prisma } from "#app/utils/db.server.ts";
+import {
+	cn,
+	getNoteImgSrc,
+	invariantResponse,
+	useIsPending,
+} from "#app/utils/misc.tsx";
 
 export async function loader({ params }: LoaderFunctionArgs) {
-	const note = db.note.findFirst({
-		where: {
-			id: {
-				equals: params.noteId,
+	const note = await prisma.note.findFirst({
+		where: { id: params.noteId },
+		select: {
+			title: true,
+			content: true,
+			images: {
+				select: { id: true, altText: true },
 			},
 		},
 	});
@@ -50,7 +60,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
 	});
 }
 
+const titleMinLength = 1;
 const titleMaxLength = 100;
+const contentMinLength = 1;
 const contentMaxLength = 10000;
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 3; // 3MB
@@ -59,17 +71,31 @@ const ImageFieldsetSchema = z.object({
 	id: z.string().optional(),
 	file: z
 		.instanceof(File)
+		.optional()
 		.refine(file => {
-			return file.size <= MAX_UPLOAD_SIZE;
-		}, "File size must be less than 3MB")
-		.optional(),
+			return !file || file.size <= MAX_UPLOAD_SIZE;
+		}, "File size must be less than 3MB"),
 	altText: z.string().optional(),
 });
 
+type ImageFieldset = z.infer<typeof ImageFieldsetSchema>;
+
+function imageHasFile(
+	image: ImageFieldset,
+): image is ImageFieldset & { file: NonNullable<ImageFieldset["file"]> } {
+	return Boolean(image.file?.size && image.file?.size > 0);
+}
+
+function imageHasId(
+	image: ImageFieldset,
+): image is ImageFieldset & { id: NonNullable<ImageFieldset["id"]> } {
+	return image.id != null;
+}
+
 const NoteEditorSchema = z.object({
-	title: z.string().max(titleMaxLength),
-	content: z.string().max(contentMaxLength),
-	images: z.array(ImageFieldsetSchema),
+	title: z.string().min(titleMinLength).max(titleMaxLength),
+	content: z.string().min(contentMinLength).max(contentMaxLength),
+	images: z.array(ImageFieldsetSchema).max(5).optional(),
 });
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -81,7 +107,40 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	);
 	await validateCSRF(formData, request.headers);
 
-	const submission = parse(formData, { schema: NoteEditorSchema });
+	const submission = await parse(formData, {
+		schema: NoteEditorSchema.transform(async ({ images = [], ...data }) => {
+			return {
+				...data,
+				imageUpdates: await Promise.all(
+					images.filter(imageHasId).map(async i => {
+						if (imageHasFile(i)) {
+							return {
+								id: i.id,
+								altText: i.altText,
+								contentType: i.file.type,
+								blob: Buffer.from(await i.file.arrayBuffer()),
+							};
+						} else {
+							return { id: i.id, altText: i.altText };
+						}
+					}),
+				),
+				newImages: await Promise.all(
+					images
+						.filter(imageHasFile)
+						.filter(i => !i.id)
+						.map(async image => {
+							return {
+								altText: image.altText,
+								contentType: image.file.type,
+								blob: Buffer.from(await image.file.arrayBuffer()),
+							};
+						}),
+				),
+			};
+		}),
+		async: true,
+	});
 
 	if (submission.intent !== "submit") {
 		return json({ status: "idle", submission } as const);
@@ -91,34 +150,37 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	const { title, content, images } = submission.value;
-	await updateNote({ id: params.noteId, title, content, images });
+	const {
+		title,
+		content,
+		imageUpdates = [],
+		newImages = [],
+	} = submission.value;
+
+	await prisma.note.update({
+		select: { id: true },
+		where: { id: params.noteId },
+		data: {
+			title,
+			content,
+			images: {
+				deleteMany: { id: { notIn: imageUpdates.map(i => i.id) } },
+				updateMany: imageUpdates.map(updates => ({
+					where: { id: updates.id },
+					data: { ...updates, id: updates.blob ? cuid() : updates.id },
+				})),
+				create: newImages,
+			},
+		},
+	});
 
 	return redirect(`/users/${params.username}/notes/${params.noteId}`);
-}
-
-function ErrorList({
-	id,
-	errors,
-}: {
-	id?: string;
-	errors?: Array<string> | null;
-}) {
-	return errors?.length ? (
-		<ul id={id} className="flex flex-col gap-1">
-			{errors.map((error, i) => (
-				<li key={i} className="text-[10px] text-foreground-destructive">
-					{error}
-				</li>
-			))}
-		</ul>
-	) : null;
 }
 
 export default function NoteEdit() {
 	const data = useLoaderData<typeof loader>();
 	const actionData = useActionData<typeof action>();
-	const isSubmitting = useIsSubmitting();
+	const isPending = useIsPending();
 
 	const [form, fields] = useForm({
 		id: "note-editor",
@@ -151,26 +213,21 @@ export default function NoteEdit() {
 				*/}
 				<button type="submit" className="hidden" />
 				<div className="flex flex-col gap-1">
-					<div>
-						<Label htmlFor={fields.title.id}>Title</Label>
-						<Input autoFocus {...conform.input(fields.title)} />
-						<div className="min-h-[32px] px-4 pb-3 pt-1">
-							<ErrorList
-								id={fields.title.errorId}
-								errors={fields.title.errors}
-							/>
-						</div>
-					</div>
-					<div>
-						<Label htmlFor={fields.content.id}>Content</Label>
-						<Textarea {...conform.textarea(fields.content)} />
-						<div className="min-h-[32px] px-4 pb-3 pt-1">
-							<ErrorList
-								id={fields.content.errorId}
-								errors={fields.content.errors}
-							/>
-						</div>
-					</div>
+					<Field
+						labelProps={{ children: "Title" }}
+						inputProps={{
+							autoFocus: true,
+							...conform.input(fields.title),
+						}}
+						errors={fields.title.errors}
+					/>
+					<TextareaField
+						labelProps={{ children: "Content" }}
+						textareaProps={{
+							...conform.textarea(fields.content),
+						}}
+						errors={fields.content.errors}
+					/>
 					<div>
 						<Label>Images</Label>
 						<ul className="flex flex-col gap-4">
@@ -183,7 +240,9 @@ export default function NoteEdit() {
 										className="text-foreground-destructive absolute right-0 top-0"
 										{...list.remove(fields.images.name, { index })}
 									>
-										<span aria-hidden>❌</span>{" "}
+										<span aria-hidden>
+											<Icon name="cross-1" />
+										</span>{" "}
 										<span className="sr-only">Remove image {index + 1}</span>
 									</button>
 									<ImageChooser config={image} />
@@ -195,7 +254,9 @@ export default function NoteEdit() {
 						className="mt-3"
 						{...list.insert(fields.images.name, { defaultValue: {} })}
 					>
-						<span aria-hidden>➕ Image</span>{" "}
+						<span aria-hidden>
+							<Icon name="plus">Image</Icon>
+						</span>{" "}
 						<span className="sr-only">Add image</span>
 					</Button>
 				</div>
@@ -208,8 +269,8 @@ export default function NoteEdit() {
 				<StatusButton
 					form={form.id}
 					type="submit"
-					disabled={isSubmitting}
-					status={isSubmitting ? "pending" : "idle"}
+					disabled={isPending}
+					status={isPending ? "pending" : "idle"}
 				>
 					Submit
 				</StatusButton>
@@ -228,12 +289,16 @@ function ImageChooser({
 
 	const existingImage = Boolean(fields.id.defaultValue);
 	const [previewImage, setPreviewImage] = useState<string | null>(
-		existingImage ? `/resources/images/${fields.id.defaultValue}` : null,
+		fields.id.defaultValue ? getNoteImgSrc(fields.id.defaultValue) : null,
 	);
 	const [altText, setAltText] = useState(fields.altText.defaultValue ?? "");
 
 	return (
-		<fieldset ref={ref} {...conform.fieldset(config)}>
+		<fieldset
+			ref={ref}
+			aria-invalid={Boolean(config.errors?.length) || undefined}
+			aria-describedby={config.errors?.length ? config.errorId : undefined}
+		>
 			<div className="flex gap-3">
 				<div className="w-32">
 					<div className="relative h-32 w-32">
@@ -260,15 +325,11 @@ function ImageChooser({
 								</div>
 							) : (
 								<div className="flex h-32 w-32 items-center justify-center rounded-lg border border-muted-foreground text-4xl text-muted-foreground">
-									➕
+									<Icon name="plus" />
 								</div>
 							)}
 							{existingImage ? (
-								<input
-									{...conform.input(fields.id, {
-										type: "hidden",
-									})}
-								/>
+								<input {...conform.input(fields.id, { type: "hidden" })} />
 							) : null}
 							<input
 								aria-label="Image"
@@ -287,9 +348,7 @@ function ImageChooser({
 									}
 								}}
 								accept="image/*"
-								{...conform.input(fields.file, {
-									type: "file",
-								})}
+								{...conform.input(fields.file, { type: "file" })}
 							/>
 						</label>
 					</div>

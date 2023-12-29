@@ -12,6 +12,6 @@ Throughout the EpicWeb.dev workshops, we iterate through building a project call
 
 1. [🔭 Full Stack Foundations ✅](./full-stack-foundations/)
 2. [📝 Professional Web Forms ✅](./web-forms/)
-3. 💾 Data Modeling Deep Dive
+3. [💾 Data Modeling Deep Dive ✅](./data-modeling/)
 4. 🔐 Web Authentication
 5. 🧪 Full Stack Testing

@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  username String  @unique
+  name     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 🐨 once you've created the Note model, add a "notes" property that is an
+  // array of the Note model
+  notes Note[]
+}
+
+// 🐨 create the Note model here. It should have the following properties
+model Note {
+  // - id: a String and be the `@id` and `@unique` field that defaults
+  //   to a CUID
+  id      String @id @default(cuid())
+  // - title: a String
+  title   String
+  // - content: a String
+  content String
+
+  // - createdAt: a DateTime and default to `now()`
+  createdAt DateTime @default(now())
+  // - updatedAt: a DateTime and use the `@updatedAt` attribute
+  updatedAt DateTime @updatedAt
+
+  // - owner: a User and use the `@relation` attribute to specify that
+  //   it references the `id` field on the `User` model. It should also use the
+  //   `onDelete` and `onUpdate` referential actions to specify that the `Note`
+  //   should be deleted if the `User` is deleted, and that the `Note` should be
+  //   updated if the `User` is updated.
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // - ownerId: a String
+  ownerId String
+}

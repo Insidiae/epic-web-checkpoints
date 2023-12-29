@@ -21,6 +21,10 @@ export async function action({ request }: ActionFunctionArgs) {
 	return redirect("/");
 }
 
+export const meta: MetaFunction = () => {
+	return [{ title: "Setup Epic Notes Account" }];
+};
+
 export default function SignupRoute() {
 	return (
 		<div className="container flex min-h-full flex-col justify-center pb-32 pt-20">
@@ -49,7 +53,3 @@ export default function SignupRoute() {
 		</div>
 	);
 }
-
-export const meta: MetaFunction = () => {
-	return [{ title: "Setup Epic Notes Account" }];
-};

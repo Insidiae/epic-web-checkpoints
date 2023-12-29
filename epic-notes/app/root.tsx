@@ -1,6 +1,10 @@
 import os from "node:os";
 import { cssBundleHref } from "@remix-run/css-bundle";
-import { json, type LinksFunction } from "@remix-run/node";
+import {
+	json,
+	type LoaderFunctionArgs,
+	type LinksFunction,
+} from "@remix-run/node";
 import {
 	Link,
 	Links,
@@ -10,12 +14,14 @@ import {
 	Scripts,
 	ScrollRestoration,
 	useLoaderData,
+	useMatches,
 	type MetaFunction,
 } from "@remix-run/react";
 import { AuthenticityTokenProvider } from "remix-utils/csrf/react";
 import { HoneypotProvider } from "remix-utils/honeypot/react";
 import faviconAssetUrl from "./assets/favicon.svg";
 import { GeneralErrorBoundary } from "./components/error-boundary.tsx";
+import { SearchBar } from "./components/search-bar.tsx";
 import fontStylesheetUrl from "./styles/font.css";
 import tailwindStylesheetUrl from "./styles/tailwind.css";
 import { csrf } from "./utils/csrf.server.ts";
@@ -31,7 +37,7 @@ export const links: LinksFunction = () => {
 	].filter(Boolean);
 };
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const honeyProps = honeypot.getInputProps();
 	const [csrfToken, csrfCookieHeader] = await csrf.commitToken();
 
@@ -71,17 +77,24 @@ function Document({ children }: { children: React.ReactNode }) {
 
 function App() {
 	const data = useLoaderData<typeof loader>();
+	const matches = useMatches();
+	const isOnSearchPage = matches.find(m => m.id === "routes/users+/index");
 
 	return (
 		<Document>
 			<header className="container mx-auto py-6">
-				<nav className="flex justify-between">
+				<nav className="flex items-center justify-between gap-6">
 					<Link to="/">
 						<div className="font-light">epic</div>
 						<div className="font-bold">notes</div>
 					</Link>
-					<Link className="underline" to="/signup">
-						Signup
+					{isOnSearchPage ? null : (
+						<div className="ml-auto max-w-sm flex-1">
+							<SearchBar status="idle" />
+						</div>
+					)}
+					<Link className="underline" to="/users/kody/notes">
+						Kody's Notes
 					</Link>
 				</nav>
 			</header>
@@ -111,11 +124,11 @@ export default function AppWithProviders() {
 	const data = useLoaderData<typeof loader>();
 
 	return (
-		<AuthenticityTokenProvider token={data.csrfToken}>
-			<HoneypotProvider {...data.honeyProps}>
+		<HoneypotProvider {...data.honeyProps}>
+			<AuthenticityTokenProvider token={data.csrfToken}>
 				<App />
-			</HoneypotProvider>
-		</AuthenticityTokenProvider>
+			</AuthenticityTokenProvider>
+		</HoneypotProvider>
 	);
 }
 
