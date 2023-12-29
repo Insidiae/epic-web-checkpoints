@@ -11,7 +11,7 @@ import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
 import { Button } from "#app/components/ui/button.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { db } from "#app/utils/db.server.ts";
-import { invariantResponse } from "#app/utils/misc.tsx";
+import { getNoteImgSrc, invariantResponse } from "#app/utils/misc.tsx";
 import { type loader as notesLoader } from "./notes.tsx";
 
 export function loader({ params }: LoaderFunctionArgs) {
@@ -33,6 +33,8 @@ export function loader({ params }: LoaderFunctionArgs) {
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
+	invariantResponse(params.noteId, "noteId param is required");
+
 	const formData = await request.formData();
 	await validateCSRF(formData, request.headers);
 	const intent = formData.get("intent");
@@ -77,9 +79,9 @@ export default function NoteRoute() {
 				<ul className="flex flex-wrap gap-5 py-5">
 					{data.note.images.map(image => (
 						<li key={image.id}>
-							<a href={`/resources/images/${image.id}`}>
+							<a href={getNoteImgSrc(image.id)}>
 								<img
-									src={`/resources/images/${image.id}`}
+									src={getNoteImgSrc(image.id)}
 									alt={image.altText ?? ""}
 									className="h-32 w-32 rounded-lg object-cover"
 								/>
