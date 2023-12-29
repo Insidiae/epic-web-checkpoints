@@ -34,9 +34,9 @@ TODO: Add notes
 
 TODO: Add notes
 
-## 06. Querying Data
+## [06. Querying Data](./06.querying/)
 
-1. Setup App Client
+1. [Setup App Client](./06.querying/01.client/)
 2. Select
 3. Nested Select
 
