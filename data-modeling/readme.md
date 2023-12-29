@@ -29,7 +29,7 @@ TODO: Add notes
 ## [05. Generating Seed Data](./05.generated/)
 
 1. [Generated Data](./05.generated/01.generated/)
-2. Dynamic Data
+2. [Dynamic Data](./05.generated/02.dynamic/)
 3. Unique Constraints
 
 TODO: Add notes
