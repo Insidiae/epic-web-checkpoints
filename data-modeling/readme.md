@@ -30,7 +30,7 @@ TODO: Add notes
 
 1. [Generated Data](./05.generated/01.generated/)
 2. [Dynamic Data](./05.generated/02.dynamic/)
-3. Unique Constraints
+3. [Unique Constraints](./05.generated/03.unique/)
 
 TODO: Add notes
 
