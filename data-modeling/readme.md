@@ -38,7 +38,7 @@ TODO: Add notes
 
 1. [Setup App Client](./06.querying/01.client/)
 2. [Select](./06.querying/02.select/)
-3. Nested Select
+3. [Nested Select](./06.querying/03.nested-select/)
 
 TODO: Add notes
 

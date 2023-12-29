@@ -10,7 +10,7 @@ export const meta: MetaFunction<
 	);
 
 	const displayName = notesMatch?.data?.owner.name ?? params.username;
-	const noteCount = notesMatch?.data?.notes.length ?? 0;
+	const noteCount = notesMatch?.data?.owner.notes.length ?? 0;
 	const notesText = noteCount === 1 ? "note" : "notes";
 
 	return [
