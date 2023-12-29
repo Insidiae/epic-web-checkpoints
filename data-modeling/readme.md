@@ -46,7 +46,7 @@ TODO: Add notes
 
 1. [Delete](./07.updating/01.delete/)
 2. [Update](./07.updating/02.update/)
-3. Transactions
+3. [Transactions](./07.updating/03.transactions/)
 4. Nested Update
 
 TODO: Add notes
