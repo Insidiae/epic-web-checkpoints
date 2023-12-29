@@ -44,8 +44,8 @@ TODO: Add notes
 
 ## [07. Updating Data](./07.updating/)
 
-1. [Delete](./01.schema/01.init/)
-2. Update
+1. [Delete](./07.updating/01.delete/)
+2. [Update](./07.updating/02.update/)
 3. Transactions
 4. Nested Update
 
