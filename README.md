@@ -4,9 +4,9 @@ This repository contains my notes and solution code as I go through Kent C. Dodd
 
 ## Table of Contents
 
-### [Epic Notes (Kellie's Version)](./epic-notes/)
+### [Epic Notes (🧝‍♂️ Kellie's Version)](./epic-notes/)
 
-Throughout the EpicWeb.dev workshops, we iterate through building a project called Epic Notes. This folder contains a working demo of the project
+Throughout the EpicWeb.dev workshops, we iterate through building a project called Epic Notes. This folder contains a working demo of the project as of the latest completed workshop exercise, and also includes the additional code that 🧝‍♂️ Kellie adds in between some of the exercise steps.
 
 ### EpicWeb.dev Vol. 1
 
