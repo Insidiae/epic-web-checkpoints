@@ -30,7 +30,7 @@ We also implement optimistic UI for our theme switcher so that the user can imme
 
 1. [Cookie Session Storage](./02.session-storage/01.session/)
 2. [Session Set](./02.session-storage/02.set/)
-3. Session Unset
+3. [Session Unset](./02.session-storage/03.unset/)
 4. Session Flash Messages
 
 TODO: 📝 Elaboration
