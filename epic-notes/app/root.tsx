@@ -136,7 +136,7 @@ function Document({
 
 function App() {
 	const data = useLoaderData<typeof loader>();
-	const theme = data.theme;
+	const theme = useTheme();
 	const matches = useMatches();
 	const isOnSearchPage = matches.find(m => m.id === "routes/users+/index");
 
@@ -192,8 +192,22 @@ export default function AppWithProviders() {
 	);
 }
 
+const themeFetcherKey = "theme-fetcher";
+
+function useTheme() {
+	const data = useLoaderData<typeof loader>();
+	const themeFetcher = useFetcher<typeof action>({ key: themeFetcherKey });
+	const optimisticTheme = themeFetcher.formData?.get("theme");
+
+	if (optimisticTheme === "light" || optimisticTheme === "dark") {
+		return optimisticTheme;
+	}
+
+	return data.theme;
+}
+
 function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
-	const fetcher = useFetcher<typeof action>();
+	const fetcher = useFetcher<typeof action>({ key: themeFetcherKey });
 
 	const [form] = useForm({
 		id: "theme-switch",
