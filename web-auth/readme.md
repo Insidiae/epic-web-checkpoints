@@ -31,6 +31,12 @@ We also implement optimistic UI for our theme switcher so that the user can imme
 1. [Cookie Session Storage](./02.session-storage/01.session/)
 2. [Session Set](./02.session-storage/02.set/)
 3. [Session Unset](./02.session-storage/03.unset/)
-4. Session Flash Messages
+4. [Session Flash Messages](./02.session-storage/04.flash/)
 
-TODO: 📝 Elaboration
+As mentioned earlier, cookies are a great solution for securely managing user sessions. By making use of HTTP-only cookies, we can ensure that important data regarding user authentication cannot be easily modified by client-side scripts. There are multiple attributes we can configure for our cookies, and fortunately Remix also provides some handy utilities to help us quickly set up cookies for our application.
+
+In this exercise, we make use of Remix's [`createCookieSessionStorage()`](https://remix.run/docs/en/main/utils/sessions#createcookiesessionstorage) utility. As the name implies, we can create a session storage using cookies (not to be confused by `window.sessionStorage`) to track the user's session. For now, we use the session storage to implement a flashed toast message whenever the user deletes a note.
+
+Using session storage to display a toast message is relatively straightforward - setting up the `createCookieSessionStorage()` for the toast message gives us `getSession()` and `commitSession()` functions which we can use in other parts of the application. When we want to display a toast message, we pass the cookie header into `getSession()`, `set()` the config object for our toast display, and add a `set-cookie` header with the value returned by `commitSession()` to our `Response`. Then we can call `getSession()` once more in the loader which needs to consume the session value, then `get()` the value we stored in the session object which we can then use in our UI.
+
+We also want to make sure to clear the toast value once we finish displaying it so the user only sees the message once and it disappears after they refresh the page. We can simply `unset()` the toast value after we call the `get()` method, or we can call `flash()` instead of `set()` and it should automatically disappear after the user refreshes the page. Either way, we also need to make sure to call `commitSession()` once again after consuming the value in the loader so that we actually save the cleared toast session.

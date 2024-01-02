@@ -1,38 +1,33 @@
-import { useForm } from "@conform-to/react";
-import { getFieldsetConstraint, parse } from "@conform-to/zod";
-import {
-	json,
-	redirect,
-	type LoaderFunctionArgs,
-	type ActionFunctionArgs,
-} from "@remix-run/node";
+import { useForm } from '@conform-to/react'
+import { getFieldsetConstraint, parse } from '@conform-to/zod'
+import { json, redirect, type DataFunctionArgs } from '@remix-run/node'
 import {
 	Form,
 	Link,
-	useLoaderData,
 	useActionData,
+	useLoaderData,
 	type MetaFunction,
-} from "@remix-run/react";
-import { formatDistanceToNow } from "date-fns";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
-import { z } from "zod";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { floatingToolbarClassName } from "#app/components/floating-toolbar.tsx";
-import { ErrorList } from "#app/components/forms.tsx";
-import { Button } from "#app/components/ui/button.tsx";
-import { Icon } from "#app/components/ui/icon.tsx";
-import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { prisma } from "#app/utils/db.server.ts";
+} from '@remix-run/react'
+import { formatDistanceToNow } from 'date-fns'
+import { AuthenticityTokenInput } from 'remix-utils/csrf/react'
+import { z } from 'zod'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { floatingToolbarClassName } from '#app/components/floating-toolbar.tsx'
+import { ErrorList } from '#app/components/forms.tsx'
+import { Button } from '#app/components/ui/button.tsx'
+import { Icon } from '#app/components/ui/icon.tsx'
+import { StatusButton } from '#app/components/ui/status-button.tsx'
+import { validateCSRF } from '#app/utils/csrf.server.ts'
+import { prisma } from '#app/utils/db.server.ts'
 import {
 	getNoteImgSrc,
 	invariantResponse,
 	useIsPending,
-} from "#app/utils/misc.tsx";
-import { toastSessionStorage } from "#app/utils/toast.server.ts";
-import { type loader as notesLoader } from "./notes.tsx";
+} from '#app/utils/misc.tsx'
+import { toastSessionStorage } from '#app/utils/toast.server.ts'
+import { type loader as notesLoader } from './notes.tsx'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: DataFunctionArgs) {
 	const note = await prisma.note.findUnique({
 		where: { id: params.noteId },
 		select: {
@@ -48,91 +43,65 @@ export async function loader({ params }: LoaderFunctionArgs) {
 				},
 			},
 		},
-	});
+	})
 
-	invariantResponse(note, "Note not found", { status: 404 });
+	invariantResponse(note, 'Not found', { status: 404 })
 
-	const date = new Date(note.updatedAt);
-	const timeAgo = formatDistanceToNow(date);
+	const date = new Date(note.updatedAt)
+	const timeAgo = formatDistanceToNow(date)
 
 	return json({
 		note,
 		timeAgo,
-	});
+	})
 }
 
 const DeleteFormSchema = z.object({
-	intent: z.literal("delete-note"),
+	intent: z.literal('delete-note'),
 	noteId: z.string(),
-});
+})
 
-export async function action({ request, params }: ActionFunctionArgs) {
-	const formData = await request.formData();
-	await validateCSRF(formData, request.headers);
+export async function action({ request, params }: DataFunctionArgs) {
+	const formData = await request.formData()
+	await validateCSRF(formData, request.headers)
 	const submission = parse(formData, {
 		schema: DeleteFormSchema,
-	});
-
-	if (submission.intent !== "submit") {
-		return json({ status: "idle", submission } as const);
+	})
+	if (submission.intent !== 'submit') {
+		return json({ status: 'idle', submission } as const)
 	}
 	if (!submission.value) {
-		return json({ status: "error", submission } as const, { status: 400 });
+		return json({ status: 'error', submission } as const, { status: 400 })
 	}
 
-	const { noteId } = submission.value;
+	const { noteId } = submission.value
 
 	const note = await prisma.note.findFirst({
 		select: { id: true, owner: { select: { username: true } } },
 		where: { id: noteId, owner: { username: params.username } },
-	});
-	invariantResponse(note, "Not found", { status: 404 });
+	})
+	invariantResponse(note, 'Not found', { status: 404 })
 
-	await prisma.note.delete({ where: { id: note.id } });
-
+	await prisma.note.delete({ where: { id: note.id } })
 	const toastCookieSession = await toastSessionStorage.getSession(
-		request.headers.get("cookie"),
-	);
-
-	toastCookieSession.flash("toast", {
-		type: "success",
-		title: "Note deleted",
-		description: "Your note has been deleted",
-	});
+		request.headers.get('cookie'),
+	)
+	// 🐨 change this to "flash"
+	toastCookieSession.flash('toast', {
+		type: 'success',
+		title: 'Note deleted',
+		description: 'Your note has been deleted',
+	})
 
 	return redirect(`/users/${note.owner.username}/notes`, {
 		headers: {
-			"set-cookie": await toastSessionStorage.commitSession(toastCookieSession),
+			'set-cookie': await toastSessionStorage.commitSession(toastCookieSession),
 		},
-	});
+	})
 }
 
-export const meta: MetaFunction<
-	typeof loader,
-	{ "routes/users+/$username_+/notes": typeof notesLoader }
-> = ({ data, params, matches }) => {
-	const notesMatch = matches.find(
-		m => m.id === "routes/users+/$username_+/notes",
-	);
-	const displayName = notesMatch?.data?.owner.name ?? params.username;
-
-	const noteTitle = data?.note.title ?? "Note";
-	const noteContentsSummary =
-		data && data.note.content.length > 100
-			? data?.note.content.slice(0, 97) + "..."
-			: "No content";
-
-	return [
-		{ title: `${noteTitle} | ${displayName}'s Notes | Epic Notes` },
-		{
-			name: "description",
-			content: noteContentsSummary,
-		},
-	];
-};
-
 export default function NoteRoute() {
-	const data = useLoaderData<typeof loader>();
+	const data = useLoaderData<typeof loader>()
 
 	return (
 		<div className="absolute inset-0 flex flex-col px-10">
@@ -144,7 +113,7 @@ export default function NoteRoute() {
 							<a href={getNoteImgSrc(image.id)}>
 								<img
 									src={getNoteImgSrc(image.id)}
-									alt={image.altText ?? ""}
+									alt={image.altText ?? ''}
 									className="h-32 w-32 rounded-lg object-cover"
 								/>
 							</a>
@@ -176,20 +145,20 @@ export default function NoteRoute() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }
 
 export function DeleteNote({ id }: { id: string }) {
-	const actionData = useActionData<typeof action>();
-	const isPending = useIsPending();
+	const actionData = useActionData<typeof action>()
+	const isPending = useIsPending()
 	const [form] = useForm({
-		id: "delete-note",
+		id: 'delete-note',
 		lastSubmission: actionData?.submission,
 		constraint: getFieldsetConstraint(DeleteFormSchema),
 		onValidate({ formData }) {
-			return parse(formData, { schema: DeleteFormSchema });
+			return parse(formData, { schema: DeleteFormSchema })
 		},
-	});
+	})
 
 	return (
 		<Form method="post" {...form.props}>
@@ -200,7 +169,7 @@ export function DeleteNote({ id }: { id: string }) {
 				name="intent"
 				value="delete-note"
 				variant="destructive"
-				status={isPending ? "pending" : actionData?.status ?? "idle"}
+				status={isPending ? 'pending' : actionData?.status ?? 'idle'}
 				disabled={isPending}
 				className="w-full max-md:aspect-square max-md:px-0"
 			>
@@ -210,7 +179,29 @@ export function DeleteNote({ id }: { id: string }) {
 			</StatusButton>
 			<ErrorList errors={form.errors} id={form.errorId} />
 		</Form>
-	);
+	)
+}
+
+export const meta: MetaFunction<
+	typeof loader,
+	{ 'routes/users+/$username_+/notes': typeof notesLoader }
+> = ({ data, params, matches }) => {
+	const notesMatch = matches.find(
+		m => m.id === 'routes/users+/$username_+/notes',
+	)
+	const displayName = notesMatch?.data?.owner.name ?? params.username
+	const noteTitle = data?.note.title ?? 'Note'
+	const noteContentsSummary =
+		data && data.note.content.length > 100
+			? data?.note.content.slice(0, 97) + '...'
+			: 'No content'
+	return [
+		{ title: `${noteTitle} | ${displayName}'s Notes | Epic Notes` },
+		{
+			name: 'description',
+			content: noteContentsSummary,
+		},
+	]
 }
 
 export function ErrorBoundary() {
@@ -222,5 +213,5 @@ export function ErrorBoundary() {
 				),
 			}}
 		/>
-	);
+	)
 }
