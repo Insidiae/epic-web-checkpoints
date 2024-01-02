@@ -52,3 +52,11 @@ And now we finally start managing user sessions using the `sessionStorage` utili
 This exercise goes through the exact same steps as the previous exercise, but since we want the user's session data to persist even when the user refreshes the page we don't call `flash()` or `unset()` after consuming the data in the loader.
 
 Using Remix's session storage utilities, we store the user's ID in a cookie (after making sure the user to be logged in actually exists, that is), then we can use the stored ID in a loader to query the user from our Prisma database, after which we can return the user data like usual. We also configured the cookie to be `secure`, so checking the `Application` tab in the DevTools shows us an encrypted value when we try to view the session data we just stored.
+
+## [04. Password Management](./04.password/)
+
+1. [Data Model for Passwords](./04.password/01.schema/)
+2. Seeding Password Hashes
+3. Sign Up
+
+TODO: 📝 Elaboration
