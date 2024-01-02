@@ -56,7 +56,7 @@ Using Remix's session storage utilities, we store the user's ID in a cookie (aft
 ## [04. Password Management](./04.password/)
 
 1. [Data Model for Passwords](./04.password/01.schema/)
-2. Seeding Password Hashes
+2. [Seeding Password Hashes](./04.password/02.seed/)
 3. Sign Up
 
 TODO: 📝 Elaboration
