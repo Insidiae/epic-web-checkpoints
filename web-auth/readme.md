@@ -44,7 +44,7 @@ We also want to make sure to clear the toast value once we finish displaying it 
 ## [03. User Session](./03.user-sessions/)
 
 1. [Session Storage](./03.user-sessions/01.session/)
-2. Set the userId
+2. [Set the userId](./03.user-sessions/02.login/)
 3. Load the User
 
 TODO: 📝 Elaboration
