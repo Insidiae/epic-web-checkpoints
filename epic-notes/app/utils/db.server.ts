@@ -1,15 +1,14 @@
+import { remember } from "@epic-web/remember";
 import { PrismaClient } from "@prisma/client";
 import chalk from "chalk";
-import { singleton } from "./singleton.server.ts";
 
-export const prisma = singleton("prisma", () => {
+export const prisma = remember("prisma", () => {
 	// NOTE: if you change anything in this function you'll need to restart
 	// the dev server to see your changes.
 	const client = new PrismaClient({
 		log: [
 			{ level: "query", emit: "event" },
 			{ level: "error", emit: "stdout" },
-			{ level: "info", emit: "stdout" },
 			{ level: "warn", emit: "stdout" },
 		],
 	});
@@ -17,7 +16,7 @@ export const prisma = singleton("prisma", () => {
 	// we'll set the logThreshold to 0 so you see all the queries, but in a
 	// production app you'd probably want to fine-tune this value to something
 	// you're more comfortable with.
-	const logThreshold = 0;
+	const logThreshold = 20;
 
 	client.$on("query", async e => {
 		if (e.duration < logThreshold) return;

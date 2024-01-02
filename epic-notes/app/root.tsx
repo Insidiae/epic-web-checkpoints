@@ -1,8 +1,11 @@
 import os from "node:os";
+import { useForm } from "@conform-to/react";
+import { parse } from "@conform-to/zod";
 import { cssBundleHref } from "@remix-run/css-bundle";
 import {
 	json,
 	type LoaderFunctionArgs,
+	type ActionFunctionArgs,
 	type LinksFunction,
 } from "@remix-run/node";
 import {
@@ -19,14 +22,21 @@ import {
 } from "@remix-run/react";
 import { AuthenticityTokenProvider } from "remix-utils/csrf/react";
 import { HoneypotProvider } from "remix-utils/honeypot/react";
+import { z } from "zod";
 import faviconAssetUrl from "./assets/favicon.svg";
 import { GeneralErrorBoundary } from "./components/error-boundary.tsx";
+import { ErrorList } from "./components/forms.tsx";
 import { SearchBar } from "./components/search-bar.tsx";
+import { Spacer } from "./components/spacer.tsx";
+import { Button } from "./components/ui/button.tsx";
+import { Icon } from "./components/ui/icon.tsx";
 import fontStylesheetUrl from "./styles/font.css";
 import tailwindStylesheetUrl from "./styles/tailwind.css";
 import { csrf } from "./utils/csrf.server.ts";
 import { getEnv } from "./utils/env.server.ts";
 import { honeypot } from "./utils/honeypot.server.ts";
+import { invariantResponse } from "./utils/misc.tsx";
+import { type Theme } from "./utils/theme.server.ts";
 
 export const links: LinksFunction = () => {
 	return [
@@ -38,15 +48,45 @@ export const links: LinksFunction = () => {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-	const honeyProps = honeypot.getInputProps();
 	const [csrfToken, csrfCookieHeader] = await csrf.commitToken();
-
+	const honeyProps = honeypot.getInputProps();
 	return json(
-		{ username: os.userInfo().username, ENV: getEnv(), honeyProps, csrfToken },
+		{
+			username: os.userInfo().username,
+			ENV: getEnv(),
+			csrfToken,
+			honeyProps,
+		},
 		{
 			headers: csrfCookieHeader ? { "set-cookie": csrfCookieHeader } : {},
 		},
 	);
+}
+
+const ThemeFormSchema = z.object({
+	theme: z.enum(["light", "dark"]),
+});
+
+export async function action({ request }: ActionFunctionArgs) {
+	const formData = await request.formData();
+	invariantResponse(
+		formData.get("intent") === "update-theme",
+		"Invalid intent",
+		{ status: 400 },
+	);
+	const submission = parse(formData, {
+		schema: ThemeFormSchema,
+	});
+	if (submission.intent !== "submit") {
+		return json({ status: "success", submission } as const);
+	}
+	if (!submission.value) {
+		return json({ status: "error", submission } as const, { status: 400 });
+	}
+
+	// we'll do stuff with the submission next...
+
+	return json({ success: true, submission });
 }
 
 export const meta: MetaFunction = () => {
@@ -56,9 +96,17 @@ export const meta: MetaFunction = () => {
 	];
 };
 
-function Document({ children }: { children: React.ReactNode }) {
+function Document({
+	children,
+	theme,
+	env,
+}: {
+	children: React.ReactNode;
+	theme?: Theme;
+	env?: Record<string, string>;
+}) {
 	return (
-		<html lang="en" className="h-full overflow-x-hidden">
+		<html lang="en" className={`${theme} h-full overflow-x-hidden`}>
 			<head>
 				<Meta />
 				<meta charSet="utf-8" />
@@ -67,6 +115,11 @@ function Document({ children }: { children: React.ReactNode }) {
 			</head>
 			<body className="flex h-full flex-col justify-between bg-background text-foreground">
 				{children}
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `window.ENV = ${JSON.stringify(env)}`,
+					}}
+				/>
 				<ScrollRestoration />
 				<Scripts />
 				<LiveReload />
@@ -77,13 +130,14 @@ function Document({ children }: { children: React.ReactNode }) {
 
 function App() {
 	const data = useLoaderData<typeof loader>();
+	const theme = "light"; // we'll handle this later
 	const matches = useMatches();
 	const isOnSearchPage = matches.find(m => m.id === "routes/users+/index");
 
 	return (
-		<Document>
-			<header className="container mx-auto py-6">
-				<nav className="flex items-center justify-between gap-6">
+		<Document theme={theme} env={data.ENV}>
+			<header className="container px-6 py-4 sm:px-8 sm:py-6">
+				<nav className="flex items-center justify-between gap-4 sm:gap-6">
 					<Link to="/">
 						<div className="font-light">epic</div>
 						<div className="font-bold">notes</div>
@@ -93,9 +147,11 @@ function App() {
 							<SearchBar status="idle" />
 						</div>
 					)}
-					<Link className="underline" to="/users/kody/notes">
-						Kody's Notes
-					</Link>
+					<div className="flex items-center gap-10">
+						<Button asChild variant="default" size="sm">
+							<Link to="/login">Log In</Link>
+						</Button>
+					</div>
 				</nav>
 			</header>
 
@@ -103,19 +159,17 @@ function App() {
 				<Outlet />
 			</div>
 
-			<div className="container mx-auto flex justify-between">
+			<div className="container flex justify-between">
 				<Link to="/">
 					<div className="font-light">epic</div>
 					<div className="font-bold">notes</div>
 				</Link>
-				<p>Built with ♥️ by {data.username}</p>
+				<div className="flex items-center gap-2">
+					<p>Built with ♥️ by {data.username}</p>
+					<ThemeSwitch userPreference={theme} />
+				</div>
 			</div>
-			<div className="h-5" />
-			<script
-				dangerouslySetInnerHTML={{
-					__html: `window.ENV = ${JSON.stringify(data.ENV)}`,
-				}}
-			/>
+			<Spacer size="3xs" />
 		</Document>
 	);
 }
@@ -129,6 +183,45 @@ export default function AppWithProviders() {
 				<App />
 			</AuthenticityTokenProvider>
 		</HoneypotProvider>
+	);
+}
+
+function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
+	// We'll handle this later...
+
+	const [form] = useForm({
+		id: "theme-switch",
+		onValidate({ formData }) {
+			return parse(formData, { schema: ThemeFormSchema });
+		},
+	});
+
+	const mode = userPreference ?? "light";
+	const modeLabel = {
+		light: (
+			<Icon name="sun">
+				<span className="sr-only">Light</span>
+			</Icon>
+		),
+		dark: (
+			<Icon name="moon">
+				<span className="sr-only">Dark</span>
+			</Icon>
+		),
+	};
+
+	return (
+		<form {...form.props}>
+			<div className="flex gap-2">
+				<button
+					type="submit"
+					className="flex h-8 w-8 cursor-pointer items-center justify-center"
+				>
+					{modeLabel[mode]}
+				</button>
+			</div>
+			<ErrorList errors={form.errors} id={form.errorId} />
+		</form>
 	);
 }
 
