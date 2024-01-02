@@ -29,6 +29,7 @@ import {
 	invariantResponse,
 	useIsPending,
 } from "#app/utils/misc.tsx";
+import { toastSessionStorage } from "#app/utils/toast.server.ts";
 import { type loader as notesLoader } from "./notes.tsx";
 
 export async function loader({ params }: LoaderFunctionArgs) {
@@ -89,7 +90,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 	await prisma.note.delete({ where: { id: note.id } });
 
-	return redirect(`/users/${note.owner.username}/notes`);
+	const toastCookieSession = await toastSessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+
+	toastCookieSession.set("toast", {
+		type: "success",
+		title: "Note deleted",
+		description: "Your note has been deleted",
+	});
+
+	return redirect(`/users/${note.owner.username}/notes`, {
+		headers: {
+			"set-cookie": await toastSessionStorage.commitSession(toastCookieSession),
+		},
+	});
 }
 
 export const meta: MetaFunction<
