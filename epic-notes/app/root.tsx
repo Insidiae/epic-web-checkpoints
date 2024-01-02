@@ -40,7 +40,7 @@ import { getEnv } from "./utils/env.server.ts";
 import { honeypot } from "./utils/honeypot.server.ts";
 import { combineHeaders, invariantResponse } from "./utils/misc.tsx";
 import { getTheme, setTheme, type Theme } from "./utils/theme.server.ts";
-import { toastSessionStorage } from "./utils/toast.server.ts";
+import { getToast, type Toast } from "./utils/toast.server.ts";
 
 export const links: LinksFunction = () => {
 	return [
@@ -54,11 +54,7 @@ export const links: LinksFunction = () => {
 export async function loader({ request }: LoaderFunctionArgs) {
 	const [csrfToken, csrfCookieHeader] = await csrf.commitToken();
 	const honeyProps = honeypot.getInputProps();
-
-	const toastCookieSession = await toastSessionStorage.getSession(
-		request.headers.get("cookie"),
-	);
-	const toast = toastCookieSession.get("toast");
+	const { toast, headers: toastHeaders } = await getToast(request);
 
 	return json(
 		{
@@ -72,10 +68,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		{
 			headers: combineHeaders(
 				csrfCookieHeader ? { "set-cookie": csrfCookieHeader } : null,
-				{
-					"set-cookie":
-						await toastSessionStorage.commitSession(toastCookieSession),
-				},
+				toastHeaders,
 			),
 		},
 	);
@@ -268,13 +261,9 @@ function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
 	);
 }
 
-function ShowToast({ toast }: { toast: any }) {
-	const { id, type, title, description } = toast as {
-		id: string;
-		type: "success" | "message";
-		title: string;
-		description: string;
-	};
+function ShowToast({ toast }: { toast: Toast }) {
+	const { id, type, title, description } = toast;
+
 	useEffect(() => {
 		setTimeout(() => {
 			showToast[type](title, { id, description });
