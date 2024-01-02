@@ -25,3 +25,12 @@ We also implement optimistic UI for our theme switcher so that the user can imme
 > [!NOTE]
 >
 > Remix v2.2.0+ makes our `useTheme()` implementation much easier by letting us provide a `key` on our `useFetcher()` call, so we can skip manually finding our theme fetcher from `useFetchers()` and instead use another `useFetcher()` call using the same `key` to get our theme value!
+
+## [02. Session Storage](./02.session-storage/)
+
+1. [Cookie Session Storage](./02.session-storage/01.session/)
+2. Session Set
+3. Session Unset
+4. Session Flash Messages
+
+TODO: 📝 Elaboration
