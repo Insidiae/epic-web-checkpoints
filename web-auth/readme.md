@@ -57,6 +57,20 @@ Using Remix's session storage utilities, we store the user's ID in a cookie (aft
 
 1. [Data Model for Passwords](./04.password/01.schema/)
 2. [Seeding Password Hashes](./04.password/02.seed/)
-3. Sign Up
+3. [Sign Up](./04.password/03.signup/)
 
-TODO: 📝 Elaboration
+Before we can implement the Login feature, we need to add another field to our `User` model to allow users to input their passwords.
+
+In this workshop, we won't be storing the passwords as plain text - instead we'll store the _hash_ of the passwords to make it a lot harder for malicious attackers from easily gaining access to user accounts. Hashing passwords protects us from [dictionary attacks](https://en.wikipedia.org/wiki/Dictionary_attack), and we'll also add a "salt" to our hashed passwords to protect us from Rainbow Table attacks (where an attacker looks up our hash in a precomputed table of hashes and their inputs). Sounds complicated, but all we'll really be doing is use a library called [`bcryptjs`](https://www.npmjs.com/package/bcryptjs) to generate a salted hashed password when we create user accounts.
+
+To add another layer of security for our passwords, we won't directly store the hashes in the `User` table - Instead, we'll create a separate `Password` table containing our hash and give it a a one-to-one relationship with the `User`. This way, even if another developer accidentally selects the entire `User` table (e.g. by not providing a `select` field in a Prisma db call), the user passwords won't be included on the response.
+
+> [!NOTE]
+>
+> The lecture notes explains one caveat when using this method for storing passwords:
+>
+> _"Unfortunately, it's not possible to enforce a required value on both sides of a one-to-one relationship. So we can't enforce that a password is required on the `User` model at the database level. However, it's worth the tradeoff to avoid the risk of leaking passwords. (see this [issue](https://github.com/epicweb-dev/web-auth/issues/7#issue-1912551875) for more information)."_
+
+We also add the password field in our database seed script, creating a reusable utility function for hashing a given password string (or a randomized string as a default).
+
+Finally, 🧝‍♂️ Kellie also implemented the session logic for the `signup` route using a similar flow as the `login` route, so all that's left to do is read the user's `password` input from the form data and store it as a salted hash using `bcryptjs`. We also make sure that the `bcryptjs` module won't be included in the client bundle by re-exporting it from a server-only module file.
