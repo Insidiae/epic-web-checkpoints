@@ -110,6 +110,12 @@ We can also play around with this force logout functionality by implementing an 
 1. [Require Anonymous](./07.protecting-routes/01.anonymous/)
 2. [Require Authenticated](./07.protecting-routes/02.authenticated/)
 3. [Require Authorized](./07.protecting-routes/03.authorized/)
-4. Redirect from Login
+4. [Redirect from Login](./07.protecting-routes/04.redirect/)
 
-TODO: 📝 Elaboration
+We can now start protecting our routes using the data from the user session! In this exercise, we write reusable utility functions in our `auth.server.ts` to require certain states depending on the user session:
+
+- `requireAnonymous()` - Ensures we don't have an active user session. Otherwise, redirect to the home route.
+- `requireUserId()` - Ensures we _do_ have an active user session. Otherwise, redirect to the login route. Later on, we also provide an additional functionality to redirect the user back where they were upon logging in.
+- `requireUser()` - Building from `requireUserId()`, gets the `id` and `username` of the currently active user. Automatically logs out if the user session does not have a matching id in the database.
+
+We use these utilities throughout our application to ensure that users do not navigate to or perform actions on routes that they're not allowed to. Because most of the logic is contained within the utility functions, most of the changes in the affected routes typically involve less than 5 lines of code each!
