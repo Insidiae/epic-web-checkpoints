@@ -124,7 +124,7 @@ We use these utilities throughout our application to ensure that users do not na
 
 1. [Roles Schema](./08.permissions/01.schema/)
 2. [Roles Seed](./08.permissions/02.seed/)
-3. Delete Note
+3. [Delete Note](./08.permissions/03.delete-note/)
 4. Permissions Utils
 
 TODO: 📝 Elaboration

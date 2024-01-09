@@ -21,7 +21,7 @@ import { ErrorList } from "#app/components/forms.tsx";
 import { Button } from "#app/components/ui/button.tsx";
 import { Icon } from "#app/components/ui/icon.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { requireUser } from "#app/utils/auth.server.ts";
+import { getUserId, requireUser } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import {
@@ -33,7 +33,8 @@ import { redirectWithToast } from "#app/utils/toast.server.ts";
 import { useOptionalUser } from "#app/utils/user.ts";
 import { type loader as notesLoader } from "./notes.tsx";
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
+	const userId = await getUserId(request);
 	const note = await prisma.note.findUnique({
 		where: { id: params.noteId },
 		select: {
@@ -56,9 +57,22 @@ export async function loader({ params }: LoaderFunctionArgs) {
 	const date = new Date(note.updatedAt);
 	const timeAgo = formatDistanceToNow(date);
 
+	const permission = userId
+		? await prisma.permission.findFirst({
+				select: { id: true },
+				where: {
+					roles: { some: { users: { some: { id: userId } } } },
+					entity: "note",
+					action: "delete",
+					access: note.ownerId === userId ? "own" : "any",
+				},
+			})
+		: null;
+
 	return json({
 		note,
 		timeAgo,
+		canDelete: Boolean(permission),
 	});
 }
 
@@ -67,12 +81,8 @@ const DeleteFormSchema = z.object({
 	noteId: z.string(),
 });
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const user = await requireUser(request);
-	invariantResponse(user.username === params.username, "Not authorized", {
-		status: 403,
-	});
-
 	const formData = await request.formData();
 	await validateCSRF(formData, request.headers);
 	const submission = parse(formData, {
@@ -89,10 +99,30 @@ export async function action({ request, params }: ActionFunctionArgs) {
 	const { noteId } = submission.value;
 
 	const note = await prisma.note.findFirst({
-		select: { id: true, owner: { select: { username: true } } },
-		where: { id: noteId, ownerId: user.id },
+		select: { id: true, ownerId: true, owner: { select: { username: true } } },
+		where: { id: noteId },
 	});
 	invariantResponse(note, "Not found", { status: 404 });
+
+	const permission = await prisma.permission.findFirst({
+		select: { id: true },
+		where: {
+			roles: { some: { users: { some: { id: user.id } } } },
+			entity: "note",
+			action: "delete",
+			access: note.ownerId === user.id ? "own" : "any",
+		},
+	});
+
+	if (!permission) {
+		throw json(
+			{
+				error: "Unauthorized",
+				message: `Unauthorized: requires permission delete:note`,
+			},
+			{ status: 403 },
+		);
+	}
 
 	await prisma.note.delete({ where: { id: note.id } });
 
@@ -132,8 +162,7 @@ export default function NoteRoute() {
 	const user = useOptionalUser();
 	const isOwner = user?.id === data.note.ownerId;
 
-	// TODO: get this value from the loader data
-	const canDelete = true;
+	const canDelete = data.canDelete;
 	const displayBar = canDelete || isOwner;
 
 	return (
@@ -221,6 +250,7 @@ export function ErrorBoundary() {
 	return (
 		<GeneralErrorBoundary
 			statusHandlers={{
+				403: () => <p>You are not allowed to do that</p>,
 				404: ({ params }) => (
 					<p>No note with the id "{params.noteId}" exists</p>
 				),
