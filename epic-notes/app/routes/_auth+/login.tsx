@@ -14,6 +14,7 @@ import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
+import { bcrypt } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { checkHoneypot } from "#app/utils/honeypot.server.ts";
@@ -35,11 +36,11 @@ export async function action({ request }: ActionFunctionArgs) {
 			LoginFormSchema.transform(async (data, ctx) => {
 				if (intent !== "submit") return { ...data, user: null };
 
-				const user = await prisma.user.findUnique({
-					select: { id: true },
+				const userWithPassword = await prisma.user.findUnique({
+					select: { id: true, password: { select: { hash: true } } },
 					where: { username: data.username },
 				});
-				if (!user) {
+				if (!userWithPassword || !userWithPassword.password) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
 						message: "Invalid username or password",
@@ -48,8 +49,19 @@ export async function action({ request }: ActionFunctionArgs) {
 					return z.NEVER;
 				}
 
-				// verify the password (we'll do this later)
-				return { ...data, user };
+				const isValid = await bcrypt.compare(
+					data.password,
+					userWithPassword.password.hash,
+				);
+				if (!isValid) {
+					ctx.addIssue({
+						code: "custom",
+						message: "Invalid username or password",
+					});
+					return z.NEVER;
+				}
+
+				return { ...data, user: { id: userWithPassword.id } };
 			}),
 		async: true,
 	});
