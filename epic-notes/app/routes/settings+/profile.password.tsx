@@ -8,7 +8,11 @@ import { ErrorList, Field } from "#app/components/forms.tsx";
 import { Button } from "#app/components/ui/button.tsx";
 import { Icon } from "#app/components/ui/icon.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { getPasswordHash, verifyUserPassword } from "#app/utils/auth.server.ts";
+import {
+	getPasswordHash,
+	requireUserId,
+	verifyUserPassword,
+} from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { useIsPending } from "#app/utils/misc.tsx";
@@ -35,7 +39,7 @@ const ChangePasswordForm = z
 	});
 
 export async function action({ request }: ActionFunctionArgs) {
-	const userId = "some_user_id"; // we'll take care of this next
+	const userId = await requireUserId(request);
 	const formData = await request.formData();
 	await validateCSRF(formData, request.headers);
 	const submission = await parse(formData, {

@@ -1,10 +1,11 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { requireUserId } from "#app/utils/auth.server.ts";
-import { prisma } from "#app/utils/db.server.ts";
-import { getDomainUrl } from "#app/utils/misc.tsx";
+import { json, type DataFunctionArgs } from '@remix-run/node'
+import { requireUserId } from '#app/utils/auth.server.ts'
+import { prisma } from '#app/utils/db.server.ts'
+import { getDomainUrl } from '#app/utils/misc.tsx'
 
-export async function loader({ request }: LoaderFunctionArgs) {
-	const userId = await requireUserId(request);
+export async function loader({ request }: DataFunctionArgs) {
+	// 🐨 get the user with your requireUserId util
+	const userId = await requireUserId(request)
 	const user = await prisma.user.findUniqueOrThrow({
 		where: { id: userId },
 		// this is one of the *few* instances where you can use "include" because
@@ -35,9 +36,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			},
 			password: false, // <-- intentionally omit password
 		},
-	});
+	})
 
-	const domain = getDomainUrl(request);
+	const domain = getDomainUrl(request)
 
 	return json({
 		user: {
@@ -56,5 +57,5 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				})),
 			})),
 		},
-	});
+	})
 }
