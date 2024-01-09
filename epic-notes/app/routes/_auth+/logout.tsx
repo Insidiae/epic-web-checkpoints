@@ -1,5 +1,5 @@
 import { type ActionFunctionArgs, redirect } from "@remix-run/node";
-import { sessionStorage } from "#app/utils/session.server.ts";
+import { logout } from "#app/utils/auth.server.ts";
 
 export async function loader() {
 	// 🦉 we'll keep this around in case the user ends up on this route. They
@@ -9,12 +9,5 @@ export async function loader() {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-	const cookieSession = await sessionStorage.getSession(
-		request.headers.get("cookie"),
-	);
-	return redirect("/", {
-		headers: {
-			"set-cookie": await sessionStorage.destroySession(cookieSession),
-		},
-	});
+	throw await logout({ request });
 }
