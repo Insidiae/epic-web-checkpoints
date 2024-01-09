@@ -37,6 +37,7 @@ const SignupFormSchema = z
 			required_error:
 				"You must agree to the terms of service and privacy policy",
 		}),
+		remember: z.boolean().optional(),
 	})
 	.superRefine(({ confirmPassword, password }, ctx) => {
 		if (confirmPassword !== password) {
@@ -203,6 +204,14 @@ export default function SignupRoute() {
 							{ type: "checkbox" },
 						)}
 						errors={fields.agreeToTermsOfServiceAndPrivacyPolicy.errors}
+					/>
+					<CheckboxField
+						labelProps={{
+							htmlFor: fields.remember.id,
+							children: "Remember me",
+						}}
+						buttonProps={conform.input(fields.remember, { type: "checkbox" })}
+						errors={fields.remember.errors}
 					/>
 
 					<ErrorList errors={form.errors} id={form.errorId} />

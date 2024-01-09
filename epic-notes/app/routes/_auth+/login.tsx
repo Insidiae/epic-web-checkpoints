@@ -11,7 +11,7 @@ import { AuthenticityTokenInput } from "remix-utils/csrf/react";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 import { z } from "zod";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { ErrorList, Field } from "#app/components/forms.tsx";
+import { CheckboxField, ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { bcrypt } from "#app/utils/auth.server.ts";
@@ -25,6 +25,7 @@ import { PasswordSchema, UsernameSchema } from "#app/utils/user-validation.ts";
 const LoginFormSchema = z.object({
 	username: UsernameSchema,
 	password: PasswordSchema,
+	remember: z.boolean().optional(),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -145,7 +146,16 @@ export default function LoginPage() {
 							/>
 
 							<div className="flex justify-between">
-								<div />
+								<CheckboxField
+									labelProps={{
+										htmlFor: fields.remember.id,
+										children: "Remember me",
+									}}
+									buttonProps={conform.input(fields.remember, {
+										type: "checkbox",
+									})}
+									errors={fields.remember.errors}
+								/>
 								<div>
 									<Link
 										to="/forgot-password"
