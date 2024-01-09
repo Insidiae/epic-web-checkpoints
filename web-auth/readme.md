@@ -109,7 +109,7 @@ We can also play around with this force logout functionality by implementing an 
 
 1. [Require Anonymous](./07.protecting-routes/01.anonymous/)
 2. [Require Authenticated](./07.protecting-routes/02.authenticated/)
-3. Require Authorized
+3. [Require Authorized](./07.protecting-routes/03.authorized/)
 4. Redirect from Login
 
 TODO: 📝 Elaboration
