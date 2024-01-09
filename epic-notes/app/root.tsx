@@ -169,6 +169,8 @@ function App() {
 	const theme = useTheme();
 	const user = useOptionalUser();
 	const matches = useMatches();
+	// TODO: use the userHasRole utility to determine if the user is an admin
+	const userIsAdmin = false;
 	const isOnSearchPage = matches.find(m => m.id === "routes/users+/index");
 
 	return (
@@ -202,6 +204,15 @@ function App() {
 										</span>
 									</Link>
 								</Button>
+								{userIsAdmin ? (
+									<Button asChild variant="secondary">
+										<Link to="/admin">
+											<Icon name="backpack">
+												<span className="hidden sm:block">Admin</span>
+											</Icon>
+										</Link>
+									</Button>
+								) : null}
 							</div>
 						) : (
 							<Button asChild variant="default" size="sm">
