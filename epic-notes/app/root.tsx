@@ -10,6 +10,7 @@ import {
 	type LinksFunction,
 } from "@remix-run/node";
 import {
+	Form,
 	Link,
 	Links,
 	LiveReload,
@@ -22,7 +23,7 @@ import {
 	useMatches,
 	type MetaFunction,
 } from "@remix-run/react";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthenticityTokenProvider } from "remix-utils/csrf/react";
 import { HoneypotProvider } from "remix-utils/honeypot/react";
 import { Toaster, toast as showToast } from "sonner";
@@ -32,6 +33,16 @@ import { GeneralErrorBoundary } from "./components/error-boundary.tsx";
 import { ErrorList } from "./components/forms.tsx";
 import { SearchBar } from "./components/search-bar.tsx";
 import { Spacer } from "./components/spacer.tsx";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "./components/ui/alert-dialog.tsx";
 import { Button } from "./components/ui/button.tsx";
 import { Icon } from "./components/ui/icon.tsx";
 import fontStylesheetUrl from "./styles/font.css";
@@ -313,6 +324,84 @@ function ThemeSwitch({ userPreference }: { userPreference?: Theme }) {
 			</div>
 			<ErrorList errors={form.errors} id={form.errorId} />
 		</fetcher.Form>
+	);
+}
+
+// 💣 you can remove this eslint line once you've rendered the LogoutTimer
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LogoutTimer() {
+	// TODO: We'll complete this implementation in the next exercise
+	const [status, setStatus] = useState<"idle" | "show-modal">("idle");
+	// 🦉 normally you'd want these numbers to be much higher, but for the purpose
+	// of this exercise, we'll make it short:
+	const logoutTime = 5000;
+	const modalTime = 2000;
+	// 🦉 here's what would be more likely:
+	// const logoutTime = 1000 * 60 * 60;
+	// const modalTime = logoutTime - 1000 * 60 * 2;
+	const modalTimer = useRef<ReturnType<typeof setTimeout>>();
+	const logoutTimer = useRef<ReturnType<typeof setTimeout>>();
+
+	const logout = useCallback(
+		() => {
+			// TODO: We'll complete this implementation in the next exercise
+		},
+		[
+			// TODO: We'll complete this implementation in the next exercise
+		],
+	);
+
+	const cleanupTimers = useCallback(() => {
+		clearTimeout(modalTimer.current);
+		clearTimeout(logoutTimer.current);
+	}, []);
+
+	const resetTimers = useCallback(() => {
+		cleanupTimers();
+		modalTimer.current = setTimeout(() => {
+			setStatus("show-modal");
+		}, modalTime);
+		logoutTimer.current = setTimeout(logout, logoutTime);
+	}, [cleanupTimers, logout, logoutTime, modalTime]);
+
+	useEffect(
+		() => resetTimers(),
+		[
+			resetTimers,
+			// TODO: We'll complete this implementation in the next exercise
+		],
+	);
+	useEffect(() => cleanupTimers, [cleanupTimers]);
+
+	function closeModal() {
+		setStatus("idle");
+		resetTimers();
+	}
+
+	return (
+		<AlertDialog
+			aria-label="Pending Logout Notification"
+			open={status === "show-modal"}
+		>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>Are you still there?</AlertDialogTitle>
+				</AlertDialogHeader>
+				<AlertDialogDescription>
+					You are going to be logged out due to inactivity. Close this modal to
+					stay logged in.
+				</AlertDialogDescription>
+				<AlertDialogFooter className="flex items-end gap-8">
+					<AlertDialogCancel onClick={closeModal}>
+						Remain Logged In
+					</AlertDialogCancel>
+					{/* TODO: We'll complete this implementation in the next exercise */}
+					<Form>
+						<AlertDialogAction type="submit">Logout</AlertDialogAction>
+					</Form>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
 	);
 }
 
