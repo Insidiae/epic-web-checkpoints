@@ -7,9 +7,10 @@ import {
 	type ActionFunctionArgs,
 	type MetaFunction,
 } from "@remix-run/node";
-import { Form, useActionData } from "@remix-run/react";
+import { Form, useActionData, useSearchParams } from "@remix-run/react";
 import { AuthenticityTokenInput } from "remix-utils/csrf/react";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
+import { safeRedirect } from "remix-utils/safe-redirect";
 import { z } from "zod";
 import { CheckboxField, ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
@@ -44,6 +45,7 @@ const SignupFormSchema = z
 				"You must agree to the terms of service and privacy policy",
 		}),
 		remember: z.boolean().optional(),
+		redirectTo: z.string().optional(),
 	})
 	.superRefine(({ confirmPassword, password }, ctx) => {
 		if (confirmPassword !== password) {
@@ -93,14 +95,14 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	const { user, remember } = submission.value;
+	const { user, remember, redirectTo } = submission.value;
 
 	const cookieSession = await sessionStorage.getSession(
 		request.headers.get("cookie"),
 	);
 	cookieSession.set(userIdKey, user.id);
 
-	return redirect("/", {
+	return redirect(safeRedirect(redirectTo), {
 		headers: {
 			"set-cookie": await sessionStorage.commitSession(cookieSession, {
 				expires: remember ? getSessionExpirationDate() : undefined,
@@ -117,9 +119,13 @@ export default function SignupRoute() {
 	const actionData = useActionData<typeof action>();
 	const isPending = useIsPending();
 
+	const [searchParams] = useSearchParams();
+	const redirectTo = searchParams.get("redirectTo");
+
 	const [form, fields] = useForm({
 		id: "signup-form",
 		constraint: getFieldsetConstraint(SignupFormSchema),
+		defaultValue: { redirectTo },
 		lastSubmission: actionData?.submission,
 		onValidate({ formData }) {
 			return parse(formData, { schema: SignupFormSchema });
@@ -213,6 +219,7 @@ export default function SignupRoute() {
 						errors={fields.remember.errors}
 					/>
 
+					<input {...conform.input(fields.redirectTo, { type: "hidden" })} />
 					<ErrorList errors={form.errors} id={form.errorId} />
 
 					<div className="flex items-center justify-between gap-6">
