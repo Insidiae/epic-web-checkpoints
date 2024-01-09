@@ -123,7 +123,7 @@ We use these utilities throughout our application to ensure that users do not na
 ## [08. Role-Based Access](./08.permissions/)
 
 1. [Roles Schema](./08.permissions/01.schema/)
-2. Roles Seed
+2. [Roles Seed](./08.permissions/02.seed/)
 3. Delete Note
 4. Permissions Utils
 
