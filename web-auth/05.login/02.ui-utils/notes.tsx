@@ -1,12 +1,12 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { Link, NavLink, Outlet, useLoaderData } from "@remix-run/react";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { Icon } from "#app/components/ui/icon.tsx";
-import { prisma } from "#app/utils/db.server.ts";
-import { cn, getUserImgSrc, invariantResponse } from "#app/utils/misc.tsx";
-import { useOptionalUser } from "#app/utils/user.ts";
+import { json, type DataFunctionArgs } from '@remix-run/node'
+import { Link, NavLink, Outlet, useLoaderData } from '@remix-run/react'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { Icon } from '#app/components/ui/icon.tsx'
+import { prisma } from '#app/utils/db.server.ts'
+import { cn, getUserImgSrc, invariantResponse } from '#app/utils/misc.tsx'
+import { useOptionalUser } from '#app/utils/user.ts'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: DataFunctionArgs) {
 	const owner = await prisma.user.findFirst({
 		select: {
 			id: true,
@@ -16,21 +16,23 @@ export async function loader({ params }: LoaderFunctionArgs) {
 			notes: { select: { id: true, title: true } },
 		},
 		where: { username: params.username },
-	});
+	})
 
-	invariantResponse(owner, "Owner not found", { status: 404 });
+	invariantResponse(owner, 'Owner not found', { status: 404 })
 
-	return json({ owner });
+	return json({ owner })
 }
 
 export default function NotesRoute() {
-	const data = useLoaderData<typeof loader>();
-	const user = useOptionalUser();
-	const isOwner = user?.id === data.owner.id;
-	const ownerDisplayName = data.owner.name ?? data.owner.username;
+	const data = useLoaderData<typeof loader>()
+	// 🐨 get the logged in user via useOptionalUser, then determine whether the
+	// logged in user is the owner by comparing the owner's id to the logged in
+	// user's id.
+	const user = useOptionalUser()
+	const isOwner = user?.id === data.owner.id
+	const ownerDisplayName = data.owner.name ?? data.owner.username
 	const navLinkDefaultClassName =
-		"line-clamp-2 block rounded-l-full py-2 pl-8 pr-6 text-base lg:text-xl";
-
+		'line-clamp-2 block rounded-l-full py-2 pl-8 pr-6 text-base lg:text-xl'
 	return (
 		<main className="container flex h-full min-h-[400px] px-0 pb-12 md:px-8">
 			<div className="grid w-full grid-cols-5 bg-muted pl-2 md:container sm:grid-cols-4 md:mx-2 md:rounded-3xl md:pr-0">
@@ -55,7 +57,7 @@ export default function NotesRoute() {
 									<NavLink
 										to="new"
 										className={({ isActive }) =>
-											cn(navLinkDefaultClassName, isActive && "bg-accent")
+											cn(navLinkDefaultClassName, isActive && 'bg-accent')
 										}
 									>
 										<Icon name="plus">New Note</Icon>
@@ -69,7 +71,7 @@ export default function NotesRoute() {
 										preventScrollReset
 										prefetch="intent"
 										className={({ isActive }) =>
-											cn(navLinkDefaultClassName, isActive && "bg-accent")
+											cn(navLinkDefaultClassName, isActive && 'bg-accent')
 										}
 									>
 										{note.title}
@@ -84,7 +86,7 @@ export default function NotesRoute() {
 				</div>
 			</div>
 		</main>
-	);
+	)
 }
 
 export function ErrorBoundary() {
@@ -96,5 +98,5 @@ export function ErrorBoundary() {
 				),
 			}}
 		/>
-	);
+	)
 }

@@ -78,4 +78,14 @@ Finally, 🧝‍♂️ Kellie also implemented the session logic for the `signup
 ## [05. Login](./05.login/)
 
 1. [Login](./05.login/01.login/)
-2. UI Utils
+2. [UI Utils](./05.login/02.ui-utils/)
+
+With the changes we've made to our Prisma schema, we can finally implement a Login functionality to our project!
+
+In this exercise, we use `bcrypt` to compare the user's submitted password with the hash that's stored in the database. From there it's simply a matter of adding another error message when the password don't match, which is trivial with the validation setup we currently have.
+
+> [!NOTE]
+>
+> We also briefly discuss _timing attacks_, where a malicious user can measure the response time for each request and compare these timings to determine whether a username is registered or not. Because the `bcrypt.compare()` function we're using is supposed to be slow, the response for a registered user will take much longer than a nonexistent user (because we immediately throw the error message in that case). For our app, this vulnerability doesn't matter much (all users are publicly visible anyway), but for other apps that require a much stricter security, you might want to look into randomizing response times to help against these kinds of attacks!
+
+We also make some changes to our project's UI to reflect the currently logged in user, if any. Using Remix's [`useRouteLoaderData()`](https://remix.run/docs/en/main/hooks/use-route-loader-data), we can get the user data from the root loader, then use that data to compare the owner IDs in the notes and profile pages. With that, we can now make sure that users can modify/delete only their own notes, and they can't add notes for other users (at least on the client side, we'll get to validating ownership on the server side later!)

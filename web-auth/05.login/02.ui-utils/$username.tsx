@@ -1,16 +1,17 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { Form, Link, useLoaderData, type MetaFunction } from "@remix-run/react";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { Spacer } from "#app/components/spacer.tsx";
-import { Button } from "#app/components/ui/button.tsx";
-import { Icon } from "#app/components/ui/icon.tsx";
-import { prisma } from "#app/utils/db.server.ts";
-import { getUserImgSrc, invariantResponse } from "#app/utils/misc.tsx";
-import { useOptionalUser } from "#app/utils/user.ts";
+import { json, type DataFunctionArgs } from '@remix-run/node'
+import { Form, Link, useLoaderData, type MetaFunction } from '@remix-run/react'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { Spacer } from '#app/components/spacer.tsx'
+import { Button } from '#app/components/ui/button.tsx'
+import { Icon } from '#app/components/ui/icon.tsx'
+import { prisma } from '#app/utils/db.server.ts'
+import { getUserImgSrc, invariantResponse } from '#app/utils/misc.tsx'
+import { useOptionalUser } from '#app/utils/user.ts'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: DataFunctionArgs) {
 	const user = await prisma.user.findFirst({
 		select: {
+			// 🐨 add the id to the select here:
 			id: true,
 			name: true,
 			username: true,
@@ -18,35 +19,24 @@ export async function loader({ params }: LoaderFunctionArgs) {
 			image: { select: { id: true } },
 		},
 		where: {
-			username: {
-				equals: params.username,
-			},
+			username: params.username,
 		},
-	});
+	})
 
-	invariantResponse(user, "User not found", { status: 404 });
+	invariantResponse(user, 'User not found', { status: 404 })
 
-	return json({ user, userJoinedDisplay: user.createdAt.toLocaleDateString() });
+	return json({ user, userJoinedDisplay: user.createdAt.toLocaleDateString() })
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data, params }) => {
-	const displayName = data?.user.name ?? params.username;
-
-	return [
-		{ title: `${displayName} | Epic Notes` },
-		{
-			name: "description",
-			content: `Profile of ${displayName} on Epic Notes`,
-		},
-	];
-};
-
 export default function ProfileRoute() {
-	const data = useLoaderData<typeof loader>();
-	const user = data.user;
-	const userDisplayName = user.name ?? user.username;
-	const loggedInUser = useOptionalUser();
-	const isLoggedInUser = user.id === loggedInUser?.id;
+	const data = useLoaderData<typeof loader>()
+	const user = data.user
+	const userDisplayName = user.name ?? user.username
+	// 🐨 get the logged in user and compare the user.id and the logged in user's
+	// id to determine whether this is the logged in user's profile or not.
+	// 💰 you'll want useOptionalUser for this one.
+	const loggedInUser = useOptionalUser()
+	const isLoggedInUser = user.id === loggedInUser?.id
 
 	return (
 		<div className="container mb-48 mt-36 flex flex-col items-center justify-center">
@@ -93,7 +83,18 @@ export default function ProfileRoute() {
 				</div>
 			</div>
 		</div>
-	);
+	)
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data, params }) => {
+	const displayName = data?.user.name ?? params.username
+	return [
+		{ title: `${displayName} | Epic Notes` },
+		{
+			name: 'description',
+			content: `Profile of ${displayName} on Epic Notes`,
+		},
+	]
 }
 
 export function ErrorBoundary() {
@@ -105,5 +106,5 @@ export function ErrorBoundary() {
 				),
 			}}
 		/>
-	);
+	)
 }
