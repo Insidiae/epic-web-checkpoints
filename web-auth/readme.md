@@ -95,6 +95,12 @@ We also make some changes to our project's UI to reflect the currently logged in
 1. [Logout](06.logout/01.logout/)
 2. [Expiration](./06.logout/02.expiration/)
 3. [Deleted Users](./06.logout/03.deleted/)
-4. Automatic Logout
+4. [Automatic Logout](./06.logout/04.auto-logout/)
 
-TODO: 📝 Elaboration
+Now that we can properly handle user sessions to let the user log in and sign up, we can start working on letting the users log out.
+
+The basic logout feature is fairly trivial - all it takes is a `POST` request to `/logout`, where the `action()` simply calls `destroySession()` and sets a new `set-cookie` header to remove the user's session. We can also add an `expires` option to the user's session upon signup/login and it will also automatically remove the session after the time we set has passed. You know the `Remember Me` checkbox you almost always see in various signup/login forms? This is basically the main logic of what they do!
+
+We can also add another layer of security/error handling to our project by verifying if the `userId` in the user session matches an existing user in our database. In case there's a `userId` already set but no matching user in the database, something may have gone wrong with the user's session data (or maybe the user was deleted from the database for some reason). Either way, we simply force a logout and redirect, then the user can try to login again to try and get a correct user session!
+
+We can also play around with this force logout functionality by implementing an auto-logout feature that triggers after a set amount of time. We simply wrap the `POST` request to `/logout` within a `setTimeout()` and reset it as the user keeps using the app, and display a warning modal to the user before the `POST` fires off and automatically logs them out! We probably won't be using this kind of feature in our project moving forward, but for other applications where user data may be more sensitive, this might be a good feature to have on our toolset!
