@@ -30,6 +30,13 @@ export async function getUserId(request: Request) {
 	return user.id;
 }
 
+export async function requireAnonymous(request: Request) {
+	const userId = await getUserId(request);
+	if (userId) {
+		throw redirect("/");
+	}
+}
+
 export async function login({
 	username,
 	password,

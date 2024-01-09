@@ -104,3 +104,12 @@ The basic logout feature is fairly trivial - all it takes is a `POST` request to
 We can also add another layer of security/error handling to our project by verifying if the `userId` in the user session matches an existing user in our database. In case there's a `userId` already set but no matching user in the database, something may have gone wrong with the user's session data (or maybe the user was deleted from the database for some reason). Either way, we simply force a logout and redirect, then the user can try to login again to try and get a correct user session!
 
 We can also play around with this force logout functionality by implementing an auto-logout feature that triggers after a set amount of time. We simply wrap the `POST` request to `/logout` within a `setTimeout()` and reset it as the user keeps using the app, and display a warning modal to the user before the `POST` fires off and automatically logs them out! We probably won't be using this kind of feature in our project moving forward, but for other applications where user data may be more sensitive, this might be a good feature to have on our toolset!
+
+## [07. Protecting Routes](./07.protecting-routes/)
+
+1. [Require Anonymous](./07.protecting-routes/01.anonymous/)
+2. Require Authenticated
+3. Require Authorized
+4. Redirect from Login
+
+TODO: 📝 Elaboration

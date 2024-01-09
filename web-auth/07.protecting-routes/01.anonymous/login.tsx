@@ -1,112 +1,110 @@
-import { conform, useForm } from "@conform-to/react";
-import { getFieldsetConstraint, parse } from "@conform-to/zod";
+import { conform, useForm } from '@conform-to/react'
+import { getFieldsetConstraint, parse } from '@conform-to/zod'
 import {
 	json,
 	redirect,
 	type LoaderFunctionArgs,
-	type ActionFunctionArgs,
+	type DataFunctionArgs,
 	type MetaFunction,
-} from "@remix-run/node";
-import { Form, Link, useActionData } from "@remix-run/react";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
-import { HoneypotInputs } from "remix-utils/honeypot/react";
-import { z } from "zod";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { CheckboxField, ErrorList, Field } from "#app/components/forms.tsx";
-import { Spacer } from "#app/components/spacer.tsx";
-import { StatusButton } from "#app/components/ui/status-button.tsx";
+} from '@remix-run/node'
+import { Form, Link, useActionData } from '@remix-run/react'
+import { AuthenticityTokenInput } from 'remix-utils/csrf/react'
+import { HoneypotInputs } from 'remix-utils/honeypot/react'
+import { z } from 'zod'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { CheckboxField, ErrorList, Field } from '#app/components/forms.tsx'
+import { Spacer } from '#app/components/spacer.tsx'
+import { StatusButton } from '#app/components/ui/status-button.tsx'
 import {
 	getSessionExpirationDate,
 	login,
 	requireAnonymous,
 	userIdKey,
-} from "#app/utils/auth.server.ts";
-import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { checkHoneypot } from "#app/utils/honeypot.server.ts";
-import { useIsPending } from "#app/utils/misc.tsx";
-import { sessionStorage } from "#app/utils/session.server.ts";
-import { PasswordSchema, UsernameSchema } from "#app/utils/user-validation.ts";
+} from '#app/utils/auth.server.ts'
+import { validateCSRF } from '#app/utils/csrf.server.ts'
+import { checkHoneypot } from '#app/utils/honeypot.server.ts'
+import { useIsPending } from '#app/utils/misc.tsx'
+import { sessionStorage } from '#app/utils/session.server.ts'
+import { PasswordSchema, UsernameSchema } from '#app/utils/user-validation.ts'
 
 const LoginFormSchema = z.object({
 	username: UsernameSchema,
 	password: PasswordSchema,
 	remember: z.boolean().optional(),
-});
+})
 
+// 🐨 create a loader here that uses the requireAnonymous utility and returns
+// an empty object of json.
 export async function loader({ request }: LoaderFunctionArgs) {
-	await requireAnonymous(request);
-	return json({});
+	await requireAnonymous(request)
+	return json({})
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-	await requireAnonymous(request);
-	const formData = await request.formData();
-	await validateCSRF(formData, request.headers);
-	checkHoneypot(formData);
+export async function action({ request }: DataFunctionArgs) {
+	// 🐨 add the requireAnonymous utility here
+	await requireAnonymous(request)
+	const formData = await request.formData()
+	await validateCSRF(formData, request.headers)
+	checkHoneypot(formData)
 	const submission = await parse(formData, {
 		schema: intent =>
 			LoginFormSchema.transform(async (data, ctx) => {
-				if (intent !== "submit") return { ...data, user: null };
+				if (intent !== 'submit') return { ...data, user: null }
 
-				const user = await login(data);
+				const user = await login(data)
 				if (!user) {
 					ctx.addIssue({
-						code: "custom",
-						message: "Invalid username or password",
-					});
-					return z.NEVER;
+						code: 'custom',
+						message: 'Invalid username or password',
+					})
+					return z.NEVER
 				}
 
-				return { ...data, user };
+				return { ...data, user }
 			}),
 		async: true,
-	});
+	})
 	// get the password off the payload that's sent back
-	delete submission.payload.password;
+	delete submission.payload.password
 
-	if (submission.intent !== "submit") {
+	if (submission.intent !== 'submit') {
 		// @ts-expect-error - conform should probably have support for doing this
-		delete submission.value?.password;
-		return json({ status: "idle", submission } as const);
+		delete submission.value?.password
+		return json({ status: 'idle', submission } as const)
 	}
-
 	if (!submission.value?.user) {
-		return json({ status: "error", submission } as const, { status: 400 });
+		return json({ status: 'error', submission } as const, { status: 400 })
 	}
 
-	const { user, remember } = submission.value;
+	const { user, remember } = submission.value
 
 	const cookieSession = await sessionStorage.getSession(
-		request.headers.get("cookie"),
-	);
-	cookieSession.set(userIdKey, user.id);
+		request.headers.get('cookie'),
+	)
+	cookieSession.set(userIdKey, user.id)
 
-	return redirect("/", {
+	return redirect('/', {
 		headers: {
-			"set-cookie": await sessionStorage.commitSession(cookieSession, {
+			'set-cookie': await sessionStorage.commitSession(cookieSession, {
 				expires: remember ? getSessionExpirationDate() : undefined,
 			}),
 		},
-	});
+	})
 }
 
-export const meta: MetaFunction = () => {
-	return [{ title: "Login to Epic Notes" }];
-};
-
 export default function LoginPage() {
-	const actionData = useActionData<typeof action>();
-	const isPending = useIsPending();
+	const actionData = useActionData<typeof action>()
+	const isPending = useIsPending()
 
 	const [form, fields] = useForm({
-		id: "login-form",
+		id: 'login-form',
 		constraint: getFieldsetConstraint(LoginFormSchema),
 		lastSubmission: actionData?.submission,
 		onValidate({ formData }) {
-			return parse(formData, { schema: LoginFormSchema });
+			return parse(formData, { schema: LoginFormSchema })
 		},
-		shouldRevalidate: "onBlur",
-	});
+		shouldRevalidate: 'onBlur',
+	})
 
 	return (
 		<div className="flex min-h-full flex-col justify-center pb-32 pt-20">
@@ -125,19 +123,19 @@ export default function LoginPage() {
 							<AuthenticityTokenInput />
 							<HoneypotInputs />
 							<Field
-								labelProps={{ children: "Username" }}
+								labelProps={{ children: 'Username' }}
 								inputProps={{
 									...conform.input(fields.username),
 									autoFocus: true,
-									className: "lowercase",
+									className: 'lowercase',
 								}}
 								errors={fields.username.errors}
 							/>
 
 							<Field
-								labelProps={{ children: "Password" }}
+								labelProps={{ children: 'Password' }}
 								inputProps={conform.input(fields.password, {
-									type: "password",
+									type: 'password',
 								})}
 								errors={fields.password.errors}
 							/>
@@ -146,10 +144,10 @@ export default function LoginPage() {
 								<CheckboxField
 									labelProps={{
 										htmlFor: fields.remember.id,
-										children: "Remember me",
+										children: 'Remember me',
 									}}
 									buttonProps={conform.input(fields.remember, {
-										type: "checkbox",
+										type: 'checkbox',
 									})}
 									errors={fields.remember.errors}
 								/>
@@ -168,7 +166,7 @@ export default function LoginPage() {
 							<div className="flex items-center justify-between gap-6 pt-3">
 								<StatusButton
 									className="w-full"
-									status={isPending ? "pending" : actionData?.status ?? "idle"}
+									status={isPending ? 'pending' : actionData?.status ?? 'idle'}
 									type="submit"
 									disabled={isPending}
 								>
@@ -184,9 +182,13 @@ export default function LoginPage() {
 				</div>
 			</div>
 		</div>
-	);
+	)
+}
+
+export const meta: MetaFunction = () => {
+	return [{ title: 'Login to Epic Notes' }]
 }
 
 export function ErrorBoundary() {
-	return <GeneralErrorBoundary />;
+	return <GeneralErrorBoundary />
 }
