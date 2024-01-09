@@ -119,3 +119,12 @@ We can now start protecting our routes using the data from the user session! In 
 - `requireUser()` - Building from `requireUserId()`, gets the `id` and `username` of the currently active user. Automatically logs out if the user session does not have a matching id in the database.
 
 We use these utilities throughout our application to ensure that users do not navigate to or perform actions on routes that they're not allowed to. Because most of the logic is contained within the utility functions, most of the changes in the affected routes typically involve less than 5 lines of code each!
+
+## [08. Role-Based Access](./08.permissions/)
+
+1. [Roles Schema](./08.permissions/01.schema/)
+2. Roles Seed
+3. Delete Note
+4. Permissions Utils
+
+TODO: 📝 Elaboration
