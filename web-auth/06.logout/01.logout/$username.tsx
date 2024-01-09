@@ -1,15 +1,16 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { Form, Link, useLoaderData, type MetaFunction } from "@remix-run/react";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { Spacer } from "#app/components/spacer.tsx";
-import { Button } from "#app/components/ui/button.tsx";
-import { Icon } from "#app/components/ui/icon.tsx";
-import { prisma } from "#app/utils/db.server.ts";
-import { getUserImgSrc, invariantResponse } from "#app/utils/misc.tsx";
-import { useOptionalUser } from "#app/utils/user.ts";
+import { json, type DataFunctionArgs } from '@remix-run/node'
+import { Form, Link, useLoaderData, type MetaFunction } from '@remix-run/react'
+// 💰 you're gonna need this:
+import { AuthenticityTokenInput } from 'remix-utils/csrf/react'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { Spacer } from '#app/components/spacer.tsx'
+import { Button } from '#app/components/ui/button.tsx'
+import { Icon } from '#app/components/ui/icon.tsx'
+import { prisma } from '#app/utils/db.server.ts'
+import { getUserImgSrc, invariantResponse } from '#app/utils/misc.tsx'
+import { useOptionalUser } from '#app/utils/user.ts'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params }: DataFunctionArgs) {
 	const user = await prisma.user.findFirst({
 		select: {
 			id: true,
@@ -19,35 +20,21 @@ export async function loader({ params }: LoaderFunctionArgs) {
 			image: { select: { id: true } },
 		},
 		where: {
-			username: {
-				equals: params.username,
-			},
+			username: params.username,
 		},
-	});
+	})
 
-	invariantResponse(user, "User not found", { status: 404 });
+	invariantResponse(user, 'User not found', { status: 404 })
 
-	return json({ user, userJoinedDisplay: user.createdAt.toLocaleDateString() });
+	return json({ user, userJoinedDisplay: user.createdAt.toLocaleDateString() })
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data, params }) => {
-	const displayName = data?.user.name ?? params.username;
-
-	return [
-		{ title: `${displayName} | Epic Notes` },
-		{
-			name: "description",
-			content: `Profile of ${displayName} on Epic Notes`,
-		},
-	];
-};
-
 export default function ProfileRoute() {
-	const data = useLoaderData<typeof loader>();
-	const user = data.user;
-	const userDisplayName = user.name ?? user.username;
-	const loggedInUser = useOptionalUser();
-	const isLoggedInUser = user.id === loggedInUser?.id;
+	const data = useLoaderData<typeof loader>()
+	const user = data.user
+	const userDisplayName = user.name ?? user.username
+	const loggedInUser = useOptionalUser()
+	const isLoggedInUser = data.user.id === loggedInUser?.id
 
 	return (
 		<div className="container mb-48 mt-36 flex flex-col items-center justify-center">
@@ -76,7 +63,9 @@ export default function ProfileRoute() {
 						Joined {data.userJoinedDisplay}
 					</p>
 					{isLoggedInUser ? (
+						// 🐨 add a method of POST and an action of "/logout" to this form
 						<Form className="mt-3" method="POST" action="/logout">
+							{/* 🐨 render the AuthenticityTokenInput from remix-utils */}
 							<AuthenticityTokenInput />
 							<Button type="submit" variant="link" size="pill">
 								<Icon name="exit" className="scale-125 max-md:scale-150">
@@ -95,7 +84,18 @@ export default function ProfileRoute() {
 				</div>
 			</div>
 		</div>
-	);
+	)
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data, params }) => {
+	const displayName = data?.user.name ?? params.username
+	return [
+		{ title: `${displayName} | Epic Notes` },
+		{
+			name: 'description',
+			content: `Profile of ${displayName} on Epic Notes`,
+		},
+	]
 }
 
 export function ErrorBoundary() {
@@ -107,5 +107,5 @@ export function ErrorBoundary() {
 				),
 			}}
 		/>
-	);
+	)
 }
