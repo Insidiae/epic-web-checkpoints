@@ -94,7 +94,7 @@ We also make some changes to our project's UI to reflect the currently logged in
 
 1. [Logout](06.logout/01.logout/)
 2. [Expiration](./06.logout/02.expiration/)
-3. Deleted Users
+3. [Deleted Users](./06.logout/03.deleted/)
 4. Automatic Logout
 
 TODO: 📝 Elaboration
