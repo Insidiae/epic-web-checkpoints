@@ -21,7 +21,7 @@ import { ErrorList } from "#app/components/forms.tsx";
 import { Button } from "#app/components/ui/button.tsx";
 import { Icon } from "#app/components/ui/icon.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { getUserId, requireUser } from "#app/utils/auth.server.ts";
+import { requireUser } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import {
@@ -29,12 +29,15 @@ import {
 	invariantResponse,
 	useIsPending,
 } from "#app/utils/misc.tsx";
+import {
+	requireUserWithPermission,
+	userHasPermission,
+} from "#app/utils/permissions.ts";
 import { redirectWithToast } from "#app/utils/toast.server.ts";
 import { useOptionalUser } from "#app/utils/user.ts";
 import { type loader as notesLoader } from "./notes.tsx";
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
-	const userId = await getUserId(request);
+export async function loader({ params }: LoaderFunctionArgs) {
 	const note = await prisma.note.findUnique({
 		where: { id: params.noteId },
 		select: {
@@ -57,22 +60,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	const date = new Date(note.updatedAt);
 	const timeAgo = formatDistanceToNow(date);
 
-	const permission = userId
-		? await prisma.permission.findFirst({
-				select: { id: true },
-				where: {
-					roles: { some: { users: { some: { id: userId } } } },
-					entity: "note",
-					action: "delete",
-					access: note.ownerId === userId ? "own" : "any",
-				},
-			})
-		: null;
-
 	return json({
 		note,
 		timeAgo,
-		canDelete: Boolean(permission),
 	});
 }
 
@@ -104,25 +94,11 @@ export async function action({ request }: ActionFunctionArgs) {
 	});
 	invariantResponse(note, "Not found", { status: 404 });
 
-	const permission = await prisma.permission.findFirst({
-		select: { id: true },
-		where: {
-			roles: { some: { users: { some: { id: user.id } } } },
-			entity: "note",
-			action: "delete",
-			access: note.ownerId === user.id ? "own" : "any",
-		},
-	});
-
-	if (!permission) {
-		throw json(
-			{
-				error: "Unauthorized",
-				message: `Unauthorized: requires permission delete:note`,
-			},
-			{ status: 403 },
-		);
-	}
+	const isOwner = note.ownerId === user.id;
+	await requireUserWithPermission(
+		request,
+		isOwner ? `delete:note:own` : `delete:note:any`,
+	);
 
 	await prisma.note.delete({ where: { id: note.id } });
 
@@ -162,7 +138,10 @@ export default function NoteRoute() {
 	const user = useOptionalUser();
 	const isOwner = user?.id === data.note.ownerId;
 
-	const canDelete = data.canDelete;
+	const canDelete = userHasPermission(
+		user,
+		isOwner ? `delete:note:own` : `delete:note:any`,
+	);
 	const displayBar = canDelete || isOwner;
 
 	return (

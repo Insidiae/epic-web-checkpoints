@@ -125,6 +125,16 @@ We use these utilities throughout our application to ensure that users do not na
 1. [Roles Schema](./08.permissions/01.schema/)
 2. [Roles Seed](./08.permissions/02.seed/)
 3. [Delete Note](./08.permissions/03.delete-note/)
-4. Permissions Utils
+4. [Permissions Utils](./08.permissions/04.utils/)
 
-TODO: 📝 Elaboration
+Most web applications have to deal with managing different levels of access for different kinds of users. Each user can be assigned their own set of permissions to allow them to perform actions where security is crucial (e.g. regular users can edit/delete only their own content, admins can edit/delete other users' content, etc.). A simple way to do this is to add a permissions field directly to the `User` model, but this can make it more difficult to change permissions for a large number of users later on (perhaps to comply with certain requirements or regulations). What we'll be doing in this exercise is create a separate `Role` model with pre-assigned `Permission`s, then we simply assign specific role/s to the users. Later on, if we have to add/remove/change permissions, we can simply edit the permissions on one `Role` then the change can propagate to all users with that role. This is called [**Role-Based Access Control (RBAC)**](https://auth0.com/intro-to-iam/what-is-role-based-access-control-rbac).
+
+![Diagram of a Many-to-Many Relationship of Users, Roles, and Permissions](../assets/images/rbac.png)
+
+First, we add the `Role` and `Permission` models in our Prisma schema. The `Role` model has the usual fields like `id`/`createdAt`/`updatedAt`, a `name` and `description`, and relationships with `Permission`s and `User`s. The `Permissions` model has the same usual fields, a `description`, a relationship with `Role`s, and three string fields for `action`, `entity`, and `access`. We also set a compound unique constraint for these three string fields because we'll be combining them to get the full permission string like `update:note:own`. For more details on how we're using permissions, feel free to check out the `prisma/schema.prisma` and `app/utils/permissions.ts` files!
+
+With the new models set up, we also update our seed script to add the newly created roles and permissions to our generated users. We also need to manually seed initial values for the roles and permissions so that the production database can also apply them when creating new users. After manually updating the migration file with our manual seed values, we also edit our seed script and reset our local dev database with new users with correct roles and permissions.
+
+To see our RBAC implementation in action, we update our delete note feature to check if the currently logged in user has the required permissions to delete the note. For the owner of the note, we check for the `delete:note:own` permission, while for other users (like admins) we'll check for the `delete:note:any` permission instead. We also throw an error message if the logged in user doesn't have the correct permissions which are then easily handled by our `<errorBoundary />`.
+
+Finally, we extract the common logic for checking permissions into separate utility functions then replace our previous implementation to use the new utility functions instead. We also wrap up the exercise by adding permission checking to other routes such as `/admin`.

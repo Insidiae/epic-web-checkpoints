@@ -1,11 +1,13 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
-import { Spacer } from "#app/components/spacer.tsx";
-import { requireUserWithRole } from "#app/utils/permissions.ts";
+import { json, type LoaderFunctionArgs } from '@remix-run/node'
+import { GeneralErrorBoundary } from '#app/components/error-boundary.tsx'
+import { Spacer } from '#app/components/spacer.tsx'
+import { requireUserWithRole } from '#app/utils/permissions.ts'
 
 export async function loader({ request }: LoaderFunctionArgs) {
-	await requireUserWithRole(request, "admin");
-	return json({});
+	// 🐨 lock down this route to only users with the "admin" role with the
+	// requireUserWithRole utility
+	await requireUserWithRole(request, 'admin')
+	return json({})
 }
 
 export default function AdminRoute() {
@@ -25,7 +27,7 @@ export default function AdminRoute() {
 				this page... For example, maybe a way to manage permissions?
 			</p>
 		</div>
-	);
+	)
 }
 export function ErrorBoundary() {
 	return (
@@ -34,5 +36,5 @@ export function ErrorBoundary() {
 				403: () => <p>Yeah, you can't be here...</p>,
 			}}
 		/>
-	);
+	)
 }
