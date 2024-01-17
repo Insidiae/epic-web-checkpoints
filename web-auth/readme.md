@@ -147,3 +147,16 @@ Finally, we extract the common logic for checking permissions into separate util
 4. [Delete Sessions](./09.managed-sessions/04.delete-sessions/)
 
 TODO: 📝 Elaboration
+
+## [10. Email](./10.email/)
+
+1. [Resend](./10.email/01.resend/)
+2. Mocks
+3. Send Email
+4. Pass Data Between Routes
+
+> [!IMPORTANT]
+>
+> Although this section's topic covers using [Resend](https://resend.com/) to send verification emails, we're not actually going to sign up for a Resend account while doing these exercises. Instead, we'll set up mocks to simulate the Resend API for local development. You'll still need to sign up for a Resend account later to get a real API key once you have a deployed version of the app!
+
+TODO: 📝 Elaboration
