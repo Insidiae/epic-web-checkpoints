@@ -138,3 +138,12 @@ With the new models set up, we also update our seed script to add the newly crea
 To see our RBAC implementation in action, we update our delete note feature to check if the currently logged in user has the required permissions to delete the note. For the owner of the note, we check for the `delete:note:own` permission, while for other users (like admins) we'll check for the `delete:note:any` permission instead. We also throw an error message if the logged in user doesn't have the correct permissions which are then easily handled by our `<errorBoundary />`.
 
 Finally, we extract the common logic for checking permissions into separate utility functions then replace our previous implementation to use the new utility functions instead. We also wrap up the exercise by adding permission checking to other routes such as `/admin`.
+
+## [09. Managed Sessions](./09.managed-sessions/)
+
+1. [Sessions Schema](./09.managed-sessions/01.schema/)
+2. Auth Utils
+3. Session Cookie
+4. Delete Sessions
+
+TODO: 📝 Elaboration

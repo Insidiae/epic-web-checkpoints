@@ -23,6 +23,7 @@ model User {
   password Password?
   notes    Note[]
   roles    Role[]
+  // 🐨 add a sessions property once you've got a Sessions model defined.
   sessions Session[]
 }
 
@@ -39,26 +40,10 @@ model Note {
 
   images NoteImage[]
 
-  // This helps our ORDER BY in the user search a LOT
-  @@index([ownerId, updatedAt])
-
   // non-unique foreign key
   @@index([ownerId])
-}
-
-model UserImage {
-  id          String  @id @default(cuid())
-  altText     String?
-  contentType String
-  blob        Bytes
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @unique
-
-  // No index necessary for userId because it's unique
+  // This helps our order by in the user search a LOT
+  @@index([ownerId, updatedAt])
 }
 
 model NoteImage {
@@ -77,6 +62,19 @@ model NoteImage {
   @@index([noteId])
 }
 
+model UserImage {
+  id          String  @id @default(cuid())
+  altText     String?
+  contentType String
+  blob        Bytes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @unique
+}
+
 model Password {
   hash String
 
@@ -84,17 +82,24 @@ model Password {
   userId String @unique
 }
 
+// 🐨 add a model for the user's sessions
 model Session {
+  // id - like usual
   id             String   @id @default(cuid())
+  // expirationDate - a required DateTime
   expirationDate DateTime
 
+  // createdAt - like usual
   createdAt DateTime @default(now())
+  // updatedAt - like usual
   updatedAt DateTime @updatedAt
 
+  // user - a required relation to the User model with onDelete and onUpdate set to Cascade
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  // userId - a required string (but not unique, because there can be many of these per user)
   userId String
 
-  // non-unique foreign key
+  // 🐨 because the userId is a foreign key but it's not unique, add an index for that too.
   @@index([userId])
 }
 
