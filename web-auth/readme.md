@@ -142,7 +142,7 @@ Finally, we extract the common logic for checking permissions into separate util
 ## [09. Managed Sessions](./09.managed-sessions/)
 
 1. [Sessions Schema](./09.managed-sessions/01.schema/)
-2. Auth Utils
+2. [Auth Utils](./09.managed-sessions/02.auth-utils/)
 3. Session Cookie
 4. Delete Sessions
 
