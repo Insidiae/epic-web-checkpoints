@@ -59,6 +59,7 @@ type ProfileActionArgs = {
 	formData: FormData;
 };
 const profileUpdateActionIntent = "update-profile";
+const signOutOfSessionsActionIntent = "sign-out-of-sessions";
 const deleteDataActionIntent = "delete-data";
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -69,6 +70,9 @@ export async function action({ request }: ActionFunctionArgs) {
 	switch (intent) {
 		case profileUpdateActionIntent: {
 			return profileUpdateAction({ request, userId, formData });
+		}
+		case signOutOfSessionsActionIntent: {
+			return signOutOfSessionsAction({ request, userId, formData });
 		}
 		case deleteDataActionIntent: {
 			return deleteDataAction({ request, userId, formData });
@@ -124,6 +128,7 @@ export default function EditUserProfile() {
 						<Icon name="download">Download your data</Icon>
 					</a>
 				</div>
+				<SignOutOfSessions />
 				<DeleteData />
 			</div>
 		</div>
@@ -244,6 +249,50 @@ function UpdateProfile() {
 				</StatusButton>
 			</div>
 		</fetcher.Form>
+	);
+}
+
+async function signOutOfSessionsAction({ request, userId }: ProfileActionArgs) {
+	// TODO: We'll implement this next!
+	// 📜 https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#not
+	return json({ status: "success" } as const);
+}
+
+function SignOutOfSessions() {
+	// TODO: We'll implement this next!
+	const dc = useDoubleCheck();
+
+	const fetcher = useFetcher<typeof signOutOfSessionsAction>();
+	const otherSessionsCount = 0; // this should be the count of sessions minus 1
+	return (
+		<div>
+			{otherSessionsCount ? (
+				<fetcher.Form method="POST">
+					<AuthenticityTokenInput />
+					<StatusButton
+						{...dc.getButtonProps({
+							type: "submit",
+							name: "intent",
+							value: signOutOfSessionsActionIntent,
+						})}
+						variant={dc.doubleCheck ? "destructive" : "default"}
+						status={
+							fetcher.state !== "idle"
+								? "pending"
+								: fetcher.data?.status ?? "idle"
+						}
+					>
+						<Icon name="avatar">
+							{dc.doubleCheck
+								? `Are you sure?`
+								: `Sign out of ${otherSessionsCount} other sessions`}
+						</Icon>
+					</StatusButton>
+				</fetcher.Form>
+			) : (
+				<Icon name="avatar">This is your only session</Icon>
+			)}
+		</div>
 	);
 }
 
