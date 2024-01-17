@@ -35,6 +35,7 @@ import {
 	PasswordSchema,
 	UsernameSchema,
 } from "#app/utils/user-validation.ts";
+import { verifySessionStorage } from "#app/utils/verification.server.ts";
 
 export const onboardingEmailSessionKey = "onboardingEmail";
 
@@ -61,17 +62,26 @@ const SignupFormSchema = z
 		}
 	});
 
-export async function loader({ request }: LoaderFunctionArgs) {
+async function requireOnboardingEmail(request: Request) {
 	await requireAnonymous(request);
-	// We'll do handle this later
-	const email = "fake@email.com";
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	const email = verifySession.get(onboardingEmailSessionKey);
+
+	if (typeof email !== "string" || !email) {
+		throw redirect("/signup");
+	}
+	return email;
+}
+
+export async function loader({ request }: LoaderFunctionArgs) {
+	const email = await requireOnboardingEmail(request);
 	return json({ email });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-	await requireAnonymous(request);
-	// We'll do handle this later
-	const email = "fake@email.com";
+	const email = await requireOnboardingEmail(request);
 
 	const formData = await request.formData();
 	await validateCSRF(formData, request.headers);
@@ -111,13 +121,22 @@ export async function action({ request }: ActionFunctionArgs) {
 	);
 	cookieSession.set(sessionKey, session.id);
 
-	return redirect(safeRedirect(redirectTo), {
-		headers: {
-			"set-cookie": await sessionStorage.commitSession(cookieSession, {
-				expires: remember ? session.expirationDate : undefined,
-			}),
-		},
-	});
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	const headers = new Headers();
+	headers.append(
+		"set-cookie",
+		await sessionStorage.commitSession(cookieSession, {
+			expires: remember ? session.expirationDate : undefined,
+		}),
+	);
+	headers.append(
+		"set-cookie",
+		await verifySessionStorage.destroySession(verifySession),
+	);
+
+	return redirect(safeRedirect(redirectTo), { headers });
 }
 
 export const meta: MetaFunction = () => {

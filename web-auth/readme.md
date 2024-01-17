@@ -153,7 +153,7 @@ TODO: 📝 Elaboration
 1. [Resend](./10.email/01.resend/)
 2. [Mocks](./10.email/02.mocks/)
 3. [Send Email](./10.email/03.send/)
-4. Pass Data Between Routes
+4. [Pass Data Between Routes](./10.email/04.session/)
 
 > [!IMPORTANT]
 >
