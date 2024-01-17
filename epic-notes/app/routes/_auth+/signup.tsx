@@ -17,6 +17,7 @@ import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { requireAnonymous } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
+import { sendEmail } from "#app/utils/email.server.ts";
 import { checkHoneypot } from "#app/utils/honeypot.server.ts";
 import { useIsPending } from "#app/utils/misc.tsx";
 import { EmailSchema } from "#app/utils/user-validation.ts";
@@ -62,11 +63,11 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 	const { email } = submission.value;
 
-	// TODO: We'll implement this later!
-	const response = {
-		status: "error",
-		error: `this has not yet been implemented ${email}`,
-	};
+	const response = await sendEmail({
+		to: email,
+		subject: `Welcome to Epic Notes!`,
+		text: `This is a test email`,
+	});
 
 	if (response.status === "success") {
 		// we'll handle this soon...
