@@ -16,10 +16,9 @@ import { CheckboxField, ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import {
-	getSessionExpirationDate,
 	requireAnonymous,
 	signup,
-	userIdKey,
+	sessionKey,
 } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
@@ -82,8 +81,8 @@ export async function action({ request }: ActionFunctionArgs) {
 				return;
 			}
 		}).transform(async data => {
-			const user = await signup(data);
-			return { ...data, user };
+			const session = await signup(data);
+			return { ...data, session };
 		}),
 		async: true,
 	});
@@ -91,21 +90,21 @@ export async function action({ request }: ActionFunctionArgs) {
 	if (submission.intent !== "submit") {
 		return json({ status: "idle", submission } as const);
 	}
-	if (!submission.value?.user) {
+	if (!submission.value?.session) {
 		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	const { user, remember, redirectTo } = submission.value;
+	const { session, remember, redirectTo } = submission.value;
 
 	const cookieSession = await sessionStorage.getSession(
 		request.headers.get("cookie"),
 	);
-	cookieSession.set(userIdKey, user.id);
+	cookieSession.set(sessionKey, session.id);
 
 	return redirect(safeRedirect(redirectTo), {
 		headers: {
 			"set-cookie": await sessionStorage.commitSession(cookieSession, {
-				expires: remember ? getSessionExpirationDate() : undefined,
+				expires: remember ? session.expirationDate : undefined,
 			}),
 		},
 	});

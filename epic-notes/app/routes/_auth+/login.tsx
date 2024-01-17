@@ -16,12 +16,7 @@ import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { CheckboxField, ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
-import {
-	getSessionExpirationDate,
-	login,
-	requireAnonymous,
-	userIdKey,
-} from "#app/utils/auth.server.ts";
+import { login, requireAnonymous, sessionKey } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { checkHoneypot } from "#app/utils/honeypot.server.ts";
 import { useIsPending } from "#app/utils/misc.tsx";
@@ -48,10 +43,10 @@ export async function action({ request }: ActionFunctionArgs) {
 	const submission = await parse(formData, {
 		schema: intent =>
 			LoginFormSchema.transform(async (data, ctx) => {
-				if (intent !== "submit") return { ...data, user: null };
+				if (intent !== "submit") return { ...data, session: null };
 
-				const user = await login(data);
-				if (!user) {
+				const session = await login(data);
+				if (!session) {
 					ctx.addIssue({
 						code: "custom",
 						message: "Invalid username or password",
@@ -59,7 +54,7 @@ export async function action({ request }: ActionFunctionArgs) {
 					return z.NEVER;
 				}
 
-				return { ...data, user };
+				return { ...data, session };
 			}),
 		async: true,
 	});
@@ -72,21 +67,21 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json({ status: "idle", submission } as const);
 	}
 
-	if (!submission.value?.user) {
+	if (!submission.value?.session) {
 		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	const { user, remember, redirectTo } = submission.value;
+	const { session, remember, redirectTo } = submission.value;
 
 	const cookieSession = await sessionStorage.getSession(
 		request.headers.get("cookie"),
 	);
-	cookieSession.set(userIdKey, user.id);
+	cookieSession.set(sessionKey, session.id);
 
 	return redirect(safeRedirect(redirectTo), {
 		headers: {
 			"set-cookie": await sessionStorage.commitSession(cookieSession, {
-				expires: remember ? getSessionExpirationDate() : undefined,
+				expires: remember ? session.expirationDate : undefined,
 			}),
 		},
 	});
