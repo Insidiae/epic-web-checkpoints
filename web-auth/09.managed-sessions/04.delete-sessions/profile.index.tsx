@@ -1,41 +1,36 @@
-import { conform, useForm } from "@conform-to/react";
-import { getFieldsetConstraint, parse } from "@conform-to/zod";
-import {
-	json,
-	redirect,
-	type LoaderFunctionArgs,
-	type ActionFunctionArgs,
-} from "@remix-run/node";
-import { Link, useFetcher, useLoaderData } from "@remix-run/react";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
-import { z } from "zod";
-import { ErrorList, Field } from "#app/components/forms.tsx";
-import { Button } from "#app/components/ui/button.tsx";
-import { Icon } from "#app/components/ui/icon.tsx";
-import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { requireUserId, sessionKey } from "#app/utils/auth.server.ts";
-import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { prisma } from "#app/utils/db.server.ts";
+import { conform, useForm } from '@conform-to/react'
+import { getFieldsetConstraint, parse } from '@conform-to/zod'
+import { json, redirect, type DataFunctionArgs } from '@remix-run/node'
+import { Link, useFetcher, useLoaderData } from '@remix-run/react'
+import { AuthenticityTokenInput } from 'remix-utils/csrf/react'
+import { z } from 'zod'
+import { ErrorList, Field } from '#app/components/forms.tsx'
+import { Button } from '#app/components/ui/button.tsx'
+import { Icon } from '#app/components/ui/icon.tsx'
+import { StatusButton } from '#app/components/ui/status-button.tsx'
+import { requireUserId, sessionKey } from '#app/utils/auth.server.ts'
+import { validateCSRF } from '#app/utils/csrf.server.ts'
+import { prisma } from '#app/utils/db.server.ts'
 import {
 	getUserImgSrc,
 	invariantResponse,
 	useDoubleCheck,
-} from "#app/utils/misc.tsx";
-import { sessionStorage } from "#app/utils/session.server.ts";
+} from '#app/utils/misc.tsx'
+import { sessionStorage } from '#app/utils/session.server.ts'
 import {
 	EmailSchema,
 	NameSchema,
 	UsernameSchema,
-} from "#app/utils/user-validation.ts";
+} from '#app/utils/user-validation.ts'
 
 const ProfileFormSchema = z.object({
 	name: NameSchema.optional(),
 	username: UsernameSchema,
 	email: EmailSchema,
-});
+})
 
-export async function loader({ request }: LoaderFunctionArgs) {
-	const userId = await requireUserId(request);
+export async function loader({ request }: DataFunctionArgs) {
+	const userId = await requireUserId(request)
 	const user = await prisma.user.findUnique({
 		where: { id: userId },
 		select: {
@@ -46,9 +41,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			image: {
 				select: { id: true },
 			},
+			// 🐨 add a count of the number of sessions for this user
+			// 📜 https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#select-a-_count-of-relations
 			_count: {
 				select: {
 					sessions: {
+						// 💰 also only select those which have not yet expired!
+						// 📜 https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#gt
 						where: {
 							expirationDate: { gt: new Date() },
 						},
@@ -56,45 +55,45 @@ export async function loader({ request }: LoaderFunctionArgs) {
 				},
 			},
 		},
-	});
+	})
 
-	invariantResponse(user, "User not found", { status: 404 });
+	invariantResponse(user, 'User not found', { status: 404 })
 
-	return json({ user });
+	return json({ user })
 }
 
 type ProfileActionArgs = {
-	request: Request;
-	userId: string;
-	formData: FormData;
-};
-const profileUpdateActionIntent = "update-profile";
-const signOutOfSessionsActionIntent = "sign-out-of-sessions";
-const deleteDataActionIntent = "delete-data";
+	request: Request
+	userId: string
+	formData: FormData
+}
+const profileUpdateActionIntent = 'update-profile'
+const signOutOfSessionsActionIntent = 'sign-out-of-sessions'
+const deleteDataActionIntent = 'delete-data'
 
-export async function action({ request }: ActionFunctionArgs) {
-	const userId = await requireUserId(request);
-	const formData = await request.formData();
-	await validateCSRF(formData, request.headers);
-	const intent = formData.get("intent");
+export async function action({ request }: DataFunctionArgs) {
+	const userId = await requireUserId(request)
+	const formData = await request.formData()
+	await validateCSRF(formData, request.headers)
+	const intent = formData.get('intent')
 	switch (intent) {
 		case profileUpdateActionIntent: {
-			return profileUpdateAction({ request, userId, formData });
+			return profileUpdateAction({ request, userId, formData })
 		}
 		case signOutOfSessionsActionIntent: {
-			return signOutOfSessionsAction({ request, userId, formData });
+			return signOutOfSessionsAction({ request, userId, formData })
 		}
 		case deleteDataActionIntent: {
-			return deleteDataAction({ request, userId, formData });
+			return deleteDataAction({ request, userId, formData })
 		}
 		default: {
-			throw new Response(`Invalid intent "${intent}"`, { status: 400 });
+			throw new Response(`Invalid intent "${intent}"`, { status: 400 })
 		}
 	}
 }
 
 export default function EditUserProfile() {
-	const data = useLoaderData<typeof loader>();
+	const data = useLoaderData<typeof loader>()
 
 	return (
 		<div className="flex flex-col gap-12">
@@ -142,7 +141,7 @@ export default function EditUserProfile() {
 				<DeleteData />
 			</div>
 		</div>
-	);
+	)
 }
 
 async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
@@ -152,35 +151,35 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 			const existingUsername = await prisma.user.findUnique({
 				where: { username },
 				select: { id: true },
-			});
+			})
 			if (existingUsername && existingUsername.id !== userId) {
 				ctx.addIssue({
-					path: ["username"],
-					code: "custom",
-					message: "A user already exists with this username",
-				});
+					path: ['username'],
+					code: 'custom',
+					message: 'A user already exists with this username',
+				})
 			}
 			const existingEmail = await prisma.user.findUnique({
 				where: { email },
 				select: { id: true },
-			});
+			})
 			if (existingEmail && existingEmail.id !== userId) {
 				ctx.addIssue({
-					path: ["email"],
-					code: "custom",
-					message: "A user already exists with this email",
-				});
+					path: ['email'],
+					code: 'custom',
+					message: 'A user already exists with this email',
+				})
 			}
 		}),
-	});
-	if (submission.intent !== "submit") {
-		return json({ status: "idle", submission } as const);
+	})
+	if (submission.intent !== 'submit') {
+		return json({ status: 'idle', submission } as const)
 	}
 	if (!submission.value) {
-		return json({ status: "error", submission } as const, { status: 400 });
+		return json({ status: 'error', submission } as const, { status: 400 })
 	}
 
-	const data = submission.value;
+	const data = submission.value
 
 	await prisma.user.update({
 		select: { username: true },
@@ -190,29 +189,29 @@ async function profileUpdateAction({ userId, formData }: ProfileActionArgs) {
 			username: data.username,
 			email: data.email,
 		},
-	});
+	})
 
-	return json({ status: "success", submission } as const);
+	return json({ status: 'success', submission } as const)
 }
 
 function UpdateProfile() {
-	const data = useLoaderData<typeof loader>();
+	const data = useLoaderData<typeof loader>()
 
-	const fetcher = useFetcher<typeof profileUpdateAction>();
+	const fetcher = useFetcher<typeof profileUpdateAction>()
 
 	const [form, fields] = useForm({
-		id: "edit-profile",
+		id: 'edit-profile',
 		constraint: getFieldsetConstraint(ProfileFormSchema),
 		lastSubmission: fetcher.data?.submission,
 		onValidate({ formData }) {
-			return parse(formData, { schema: ProfileFormSchema });
+			return parse(formData, { schema: ProfileFormSchema })
 		},
 		defaultValue: {
 			username: data.user.username,
-			name: data.user.name ?? "",
+			name: data.user.name ?? '',
 			email: data.user.email,
 		},
-	});
+	})
 
 	return (
 		<fetcher.Form method="POST" {...form.props}>
@@ -222,20 +221,20 @@ function UpdateProfile() {
 					className="col-span-3"
 					labelProps={{
 						htmlFor: fields.username.id,
-						children: "Username",
+						children: 'Username',
 					}}
 					inputProps={conform.input(fields.username)}
 					errors={fields.username.errors}
 				/>
 				<Field
 					className="col-span-3"
-					labelProps={{ htmlFor: fields.name.id, children: "Name" }}
+					labelProps={{ htmlFor: fields.name.id, children: 'Name' }}
 					inputProps={conform.input(fields.name)}
 					errors={fields.name.errors}
 				/>
 				<Field
 					className="col-span-3"
-					labelProps={{ htmlFor: fields.email.id, children: "Email" }}
+					labelProps={{ htmlFor: fields.email.id, children: 'Email' }}
 					inputProps={conform.input(fields.email)}
 					errors={fields.email.errors}
 				/>
@@ -250,44 +249,47 @@ function UpdateProfile() {
 					name="intent"
 					value={profileUpdateActionIntent}
 					status={
-						fetcher.state !== "idle"
-							? "pending"
-							: fetcher.data?.status ?? "idle"
+						fetcher.state !== 'idle'
+							? 'pending'
+							: fetcher.data?.status ?? 'idle'
 					}
 				>
 					Save changes
 				</StatusButton>
 			</div>
 		</fetcher.Form>
-	);
+	)
 }
 
 async function signOutOfSessionsAction({ request, userId }: ProfileActionArgs) {
+	// 🐨 get the sessionId from the cookieSession (you'll need to use getSession for this)
 	const cookieSession = await sessionStorage.getSession(
-		request.headers.get("cookie"),
-	);
-	const sessionId = cookieSession.get(sessionKey);
+		request.headers.get('cookie'),
+	)
+	const sessionId = cookieSession.get(sessionKey)
+	// 🐨 delete all the sessions that are not the current session
+	// 📜 https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#not
 	invariantResponse(
 		sessionId,
-		"You must be authenticated to sign out of other sessions",
-	);
-
+		'You must be authenticated to sign out of other sessions',
+	)
 	await prisma.session.deleteMany({
 		where: {
 			userId,
 			id: { not: sessionId },
 		},
-	});
-	return json({ status: "success" } as const);
+	})
+	return json({ status: 'success' } as const)
 }
 
 function SignOutOfSessions() {
-	const data = useLoaderData<typeof loader>();
-	const dc = useDoubleCheck();
+	// 🐨 get the loader data using useLoaderData
+	const data = useLoaderData<typeof loader>()
+	const dc = useDoubleCheck()
 
-	const fetcher = useFetcher<typeof signOutOfSessionsAction>();
-	const otherSessionsCount = data.user._count.sessions - 1;
-
+	const fetcher = useFetcher<typeof signOutOfSessionsAction>()
+	// 🐨 this should be the count of sessions minus 1
+	const otherSessionsCount = data.user._count.sessions - 1
 	return (
 		<div>
 			{otherSessionsCount ? (
@@ -295,15 +297,15 @@ function SignOutOfSessions() {
 					<AuthenticityTokenInput />
 					<StatusButton
 						{...dc.getButtonProps({
-							type: "submit",
-							name: "intent",
+							type: 'submit',
+							name: 'intent',
 							value: signOutOfSessionsActionIntent,
 						})}
-						variant={dc.doubleCheck ? "destructive" : "default"}
+						variant={dc.doubleCheck ? 'destructive' : 'default'}
 						status={
-							fetcher.state !== "idle"
-								? "pending"
-								: fetcher.data?.status ?? "idle"
+							fetcher.state !== 'idle'
+								? 'pending'
+								: fetcher.data?.status ?? 'idle'
 						}
 					>
 						<Icon name="avatar">
@@ -317,30 +319,30 @@ function SignOutOfSessions() {
 				<Icon name="avatar">This is your only session</Icon>
 			)}
 		</div>
-	);
+	)
 }
 
 async function deleteDataAction({ userId }: ProfileActionArgs) {
-	await prisma.user.delete({ where: { id: userId } });
-	return redirect("/");
+	await prisma.user.delete({ where: { id: userId } })
+	return redirect('/')
 }
 
 function DeleteData() {
-	const dc = useDoubleCheck();
+	const dc = useDoubleCheck()
 
-	const fetcher = useFetcher<typeof deleteDataAction>();
+	const fetcher = useFetcher<typeof deleteDataAction>()
 	return (
 		<div>
 			<fetcher.Form method="POST">
 				<AuthenticityTokenInput />
 				<StatusButton
 					{...dc.getButtonProps({
-						type: "submit",
-						name: "intent",
+						type: 'submit',
+						name: 'intent',
 						value: deleteDataActionIntent,
 					})}
-					variant={dc.doubleCheck ? "destructive" : "default"}
-					status={fetcher.state !== "idle" ? "pending" : "idle"}
+					variant={dc.doubleCheck ? 'destructive' : 'default'}
+					status={fetcher.state !== 'idle' ? 'pending' : 'idle'}
 				>
 					<Icon name="trash">
 						{dc.doubleCheck ? `Are you sure?` : `Delete all your data`}
@@ -348,5 +350,5 @@ function DeleteData() {
 				</StatusButton>
 			</fetcher.Form>
 		</div>
-	);
+	)
 }
