@@ -1,7 +1,9 @@
 import { conform, useForm } from "@conform-to/react";
 import { getFieldsetConstraint, parse } from "@conform-to/zod";
+import { verifyTOTP } from "@epic-web/totp";
 import {
 	json,
+	redirect,
 	type LoaderFunctionArgs,
 	type ActionFunctionArgs,
 } from "@remix-run/node";
@@ -17,14 +19,23 @@ import { ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
+import { prisma } from "#app/utils/db.server.ts";
 import { useIsPending } from "#app/utils/misc.tsx";
+import { verifySessionStorage } from "#app/utils/verification.server.ts";
+import { onboardingEmailSessionKey } from "./onboarding.tsx";
 
 export const codeQueryParam = "code";
 export const targetQueryParam = "target";
+export const typeQueryParam = "type";
 export const redirectToQueryParam = "redirectTo";
+
+const types = ["onboarding"] as const;
+const VerificationTypeSchema = z.enum(types);
+export type VerificationTypes = z.infer<typeof VerificationTypeSchema>;
 
 const VerifySchema = z.object({
 	[codeQueryParam]: z.string().min(6).max(6),
+	[typeQueryParam]: VerificationTypeSchema,
 	[targetQueryParam]: z.string(),
 	[redirectToQueryParam]: z.string().optional(),
 });
@@ -59,9 +70,34 @@ async function validateRequest(
 	const submission = await parse(body, {
 		schema: () =>
 			VerifySchema.superRefine(async (data, ctx) => {
-				console.log("verify this", data);
-				// we'll validate the code here later
-				const codeIsValid = true;
+				const verification = await prisma.verification.findUnique({
+					select: {
+						secret: true,
+						period: true,
+						digits: true,
+						algorithm: true,
+						charSet: true,
+					},
+					where: {
+						target_type: {
+							target: data[targetQueryParam],
+							type: data[typeQueryParam],
+						},
+						OR: [{ expiresAt: { gt: new Date() } }, { expiresAt: null }],
+					},
+				});
+				if (!verification) {
+					ctx.addIssue({
+						path: ["code"],
+						code: z.ZodIssueCode.custom,
+						message: `Invalid code`,
+					});
+					return z.NEVER;
+				}
+				const codeIsValid = verifyTOTP({
+					otp: data[codeQueryParam],
+					...verification,
+				});
 				if (!codeIsValid) {
 					ctx.addIssue({
 						path: ["code"],
@@ -82,8 +118,28 @@ async function validateRequest(
 		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	// we'll implement this later
-	throw new Error("This is not yet implemented");
+	const { value: submissionValue } = submission;
+	await prisma.verification.delete({
+		where: {
+			target_type: {
+				target: submissionValue[targetQueryParam],
+				type: submissionValue[typeQueryParam],
+			},
+		},
+	});
+
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	verifySession.set(
+		onboardingEmailSessionKey,
+		submission.value[targetQueryParam],
+	);
+	return redirect("/onboarding", {
+		headers: {
+			"set-cookie": await verifySessionStorage.commitSession(verifySession),
+		},
+	});
 }
 
 export default function VerifyRoute() {
@@ -101,6 +157,7 @@ export default function VerifyRoute() {
 		},
 		defaultValue: {
 			code: searchParams.get(codeQueryParam) ?? "",
+			type: searchParams.get(typeQueryParam) ?? "",
 			target: searchParams.get(targetQueryParam) ?? "",
 			redirectTo: searchParams.get(redirectToQueryParam) ?? "",
 		},
@@ -131,6 +188,9 @@ export default function VerifyRoute() {
 							}}
 							inputProps={conform.input(fields[codeQueryParam])}
 							errors={fields[codeQueryParam].errors}
+						/>
+						<input
+							{...conform.input(fields[typeQueryParam], { type: "hidden" })}
 						/>
 						<input
 							{...conform.input(fields[targetQueryParam], { type: "hidden" })}

@@ -22,6 +22,7 @@ import { sendEmail } from "#app/utils/email.server.ts";
 import { checkHoneypot } from "#app/utils/honeypot.server.ts";
 import { getDomainUrl, useIsPending } from "#app/utils/misc.tsx";
 import { EmailSchema } from "#app/utils/user-validation.ts";
+import { codeQueryParam, targetQueryParam, typeQueryParam } from "./verify.tsx";
 
 const SignupSchema = z.object({
 	email: EmailSchema,
@@ -71,11 +72,11 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const type = "onboarding";
 	const redirectToUrl = new URL(`${getDomainUrl(request)}/verify`);
-	redirectToUrl.searchParams.set("type", type);
-	redirectToUrl.searchParams.set("target", email);
+	redirectToUrl.searchParams.set(typeQueryParam, type);
+	redirectToUrl.searchParams.set(targetQueryParam, email);
 
 	const verifyUrl = new URL(redirectToUrl);
-	verifyUrl.searchParams.set("code", otp);
+	verifyUrl.searchParams.set(codeQueryParam, otp);
 
 	const verificationData = {
 		type,

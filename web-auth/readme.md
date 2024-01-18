@@ -173,6 +173,6 @@ We also set up a new `/onboarding` route to handle the next step after the user 
 
 1. [Verification Schema](./11.verification/01.schema/)
 2. [Generate TOTP](./11.verification/02.totp/)
-3. Verify Code
+3. [Verify Code](./11.verification/03.verify-code/)
 
 TODO: 📝 Elaboration
