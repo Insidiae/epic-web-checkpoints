@@ -146,7 +146,9 @@ Finally, we extract the common logic for checking permissions into separate util
 3. [Session Cookie](./09.managed-sessions/03.session-cookie/)
 4. [Delete Sessions](./09.managed-sessions/04.delete-sessions/)
 
-TODO: 📝 Elaboration
+In this exercise, we make the user session model a bit more sophisticated by adding the ability to manage multiple sessions across multiple devices.
+
+First, we update our Prisma schema to add a new `Session` model, which we'll then use to update our auth utility functions to keep track of individual sessions instead of users. We also store the `expirationDate` in these session fields, so we can automatically invalidate the session once the session passes its set expiration date. Finally, we also display how many active sessions there are using Prisma's `_count` utility, and add a new feature to let the user sign out all other sessions using `deleteMany` and filtering out the current active session which we'll keep signed in.
 
 ## [10. Email](./10.email/)
 
@@ -155,8 +157,14 @@ TODO: 📝 Elaboration
 3. [Send Email](./10.email/03.send/)
 4. [Pass Data Between Routes](./10.email/04.session/)
 
+In this exercise, we set up one of the more essential steps for user verification: sending emails! Emails are one of the steps we can't totally skip in the verification process - it's one of the first steps a user will usually go through when creating new accounts, resetting passwords, and other tasks that require the user to verify their identity. Thus, we'll want to make sure we have a reliable process for sending emails to the user before we move on to adding more advanced steps for user authentication!
+
+There are many ways to programatically send emails to users, but for the sake of both convenience and reliability, we'll use a service called [Resend](https://resend.com/) to handle most of the email deliverability stuff in this exercise (You can definitely try to set up your own email service yourself if you want, but email services ensure that the emails you send are actually going to be seen by your users and not going to their spam folders. [Sadly, the oligopoly has won 😅](https://cfenollosa.com/blog/after-self-hosting-my-email-for-twenty-three-years-i-have-thrown-in-the-towel-the-oligopoly-has-won.html))
+
 > [!IMPORTANT]
 >
-> Although this section's topic covers using [Resend](https://resend.com/) to send verification emails, we're not actually going to sign up for a Resend account while doing these exercises. Instead, we'll set up mocks to simulate the Resend API for local development. You'll still need to sign up for a Resend account later to get a real API key once you have a deployed version of the app!
+> Although this exercise's topic covers using Resend to send verification emails, we're not actually going to sign up for a Resend account in this workshop. Instead, we'll set up mocks to simulate the Resend API for local development. You'll still need to sign up for a Resend account later to get a real API key once you have a deployed version of the app!
 
-TODO: 📝 Elaboration
+For local development purposes, we'll also set up mocks for the email service using [Mock Service Worker (MSW)](https://mswjs.io/). This might feel like too much of a boilerplatey setup at first, but seting up mocks this way allows us to test the email verification flow in local development without using up the free tier of our email service too quickly! Fortunately, since we're using [Resend's REST API](https://resend.com/docs/api-reference/emails/send-email) to send the emails, we can use MSW to intercept the request during development and mock up the expected results without changing the actual authentication flow in our app.
+
+We also set up a new `/onboarding` route to handle the next step after the user clicks the verification link sent to their email address. This requires us to have some way of passing data between multiple routes (or multiple tabs in this case, because our user has to navigate to their email to view the verification link and then back to our app to handle the next step of the signup flow). Turns out cookie sessions are a great way of handling this, but we'll want to create a short-lived `verifySession` specific to this onboarding process. In this exercise, we'll only make sure that we're properly setting up the `verifySession` from the `/signup` route (which now only has an email address input) and consuming it within the new `/onboarding` route which has the rest of the signup form fields. We'll handle the actual email verification process next exercise!
