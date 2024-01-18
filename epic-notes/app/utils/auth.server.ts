@@ -93,7 +93,7 @@ export async function login({
 			expirationDate: getSessionExpirationDate(),
 			userId: user.id,
 		},
-		select: { id: true, expirationDate: true },
+		select: { id: true, expirationDate: true, userId: true },
 	});
 
 	return session;

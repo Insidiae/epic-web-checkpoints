@@ -198,3 +198,10 @@ TODO: 📝 Elaboration
 3. [Verify Code](./14.enable-2fa/03.verify/)
 
 TODO: 📝 Elaboration
+
+## [15. Verify 2FA Code](./15.verify-2fa/)
+
+1. [Unverified Session](./15.verify-2fa/01.unverified/)
+2. Handle Verification
+
+TODO: 📝 Elaboration
