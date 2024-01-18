@@ -168,3 +168,11 @@ There are many ways to programatically send emails to users, but for the sake of
 For local development purposes, we'll also set up mocks for the email service using [Mock Service Worker (MSW)](https://mswjs.io/). This might feel like too much of a boilerplatey setup at first, but seting up mocks this way allows us to test the email verification flow in local development without using up the free tier of our email service too quickly! Fortunately, since we're using [Resend's REST API](https://resend.com/docs/api-reference/emails/send-email) to send the emails, we can use MSW to intercept the request during development and mock up the expected results without changing the actual authentication flow in our app.
 
 We also set up a new `/onboarding` route to handle the next step after the user clicks the verification link sent to their email address. This requires us to have some way of passing data between multiple routes (or multiple tabs in this case, because our user has to navigate to their email to view the verification link and then back to our app to handle the next step of the signup flow). Turns out cookie sessions are a great way of handling this, but we'll want to create a short-lived `verifySession` specific to this onboarding process. In this exercise, we'll only make sure that we're properly setting up the `verifySession` from the `/signup` route (which now only has an email address input) and consuming it within the new `/onboarding` route which has the rest of the signup form fields. We'll handle the actual email verification process next exercise!
+
+## [11. Verification](./11.verification/)
+
+1. [Verification Schema](./11.verification/01.schema/)
+2. Generate TOTP
+3. Verify Code
+
+TODO: 📝 Elaboration

@@ -39,26 +39,10 @@ model Note {
 
   images NoteImage[]
 
-  // This helps our ORDER BY in the user search a LOT
-  @@index([ownerId, updatedAt])
-
   // non-unique foreign key
   @@index([ownerId])
-}
-
-model UserImage {
-  id          String  @id @default(cuid())
-  altText     String?
-  contentType String
-  blob        Bytes
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @unique
-
-  // No index necessary for userId because it's unique
+  // This helps our order by in the user search a LOT
+  @@index([ownerId, updatedAt])
 }
 
 model NoteImage {
@@ -75,6 +59,19 @@ model NoteImage {
 
   // non-unique foreign key
   @@index([noteId])
+}
+
+model UserImage {
+  id          String  @id @default(cuid())
+  altText     String?
+  contentType String
+  blob        Bytes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @unique
 }
 
 model Password {
@@ -125,33 +122,30 @@ model Role {
   permissions Permission[]
 }
 
+// 🐨 create a verification model here. It should have:
 model Verification {
+  // - id: string and a primary key
   id        String   @id @default(cuid())
+  // - createdAt: DateTime and a default value of now
   createdAt DateTime @default(now())
 
-  /// The type of verification, e.g. "email" or "phone"
+  // - type: string - The type of verification, e.g. "email" or "phone"
   type String
-
-  /// The thing we're trying to verify, e.g. a user's email or phone number
+  // - target: string - The thing we're trying to verify, e.g. a user's email or phone number
   target String
-
-  /// The secret key used to generate the otp
+  // - secret: string - The secret key used to generate the otp
   secret String
-
-  /// The algorithm used to generate the otp
+  // - algorithm: string - The algorithm used to generate the otp
   algorithm String
-
-  /// The number of digits in the otp
+  // - digits: int - The number of digits in the otp
   digits Int
-
-  /// The number of seconds the otp is valid for
+  // - period: int - The number of seconds the otp is valid for
   period Int
-
-  /// The valid characters for the otp
+  // - charSet: String - The character set used to generate the otp
   charSet String
-
-  /// When it's safe to delete this verification
+  // - expiresAt: DateTime? - When it's safe to delete this verification
   expiresAt DateTime?
 
+  // and add a unique constraint on target and type (there should be only one of each type for a given target)
   @@unique([target, type])
 }
