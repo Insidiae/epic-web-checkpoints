@@ -1,5 +1,6 @@
 import { conform, useForm } from "@conform-to/react";
 import { getFieldsetConstraint, parse } from "@conform-to/zod";
+import { generateTOTP } from "@epic-web/totp";
 import {
 	json,
 	redirect,
@@ -19,10 +20,8 @@ import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { sendEmail } from "#app/utils/email.server.ts";
 import { checkHoneypot } from "#app/utils/honeypot.server.ts";
-import { useIsPending } from "#app/utils/misc.tsx";
+import { getDomainUrl, useIsPending } from "#app/utils/misc.tsx";
 import { EmailSchema } from "#app/utils/user-validation.ts";
-import { verifySessionStorage } from "#app/utils/verification.server.ts";
-import { onboardingEmailSessionKey } from "./onboarding.tsx";
 
 const SignupSchema = z.object({
 	email: EmailSchema,
@@ -65,25 +64,39 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 	const { email } = submission.value;
 
+	const { otp, ...verificationConfig } = generateTOTP({
+		algorithm: "SHA256",
+		period: 10 * 60, // valid for 10 minutes
+	});
+
+	const type = "onboarding";
+	const redirectToUrl = new URL(`${getDomainUrl(request)}/verify`);
+	redirectToUrl.searchParams.set("type", type);
+	redirectToUrl.searchParams.set("target", email);
+
+	const verifyUrl = new URL(redirectToUrl);
+	verifyUrl.searchParams.set("code", otp);
+
+	const verificationData = {
+		type,
+		target: email,
+		...verificationConfig,
+		expiresAt: new Date(Date.now() + verificationConfig.period * 1000),
+	};
+	await prisma.verification.upsert({
+		where: { target_type: { target: email, type } },
+		create: verificationData,
+		update: verificationData,
+	});
+
 	const response = await sendEmail({
 		to: email,
 		subject: `Welcome to Epic Notes!`,
-		text: `This is a test email`,
+		text: `Here's your code: ${otp}. Or open this: ${verifyUrl.toString()}`,
 	});
 
 	if (response.status === "success") {
-		// You'll want to actually wait until the user has verified their email
-		// before setting this in the session and sending them to onboarding, but
-		// we'll get to that later.
-		const verifySession = await verifySessionStorage.getSession(
-			request.headers.get("cookie"),
-		);
-		verifySession.set(onboardingEmailSessionKey, email);
-		return redirect("/onboarding", {
-			headers: {
-				"set-cookie": await verifySessionStorage.commitSession(verifySession),
-			},
-		});
+		return redirect(redirectToUrl.toString());
 	} else {
 		submission.error[""] = [response.error];
 		return json({ status: "error", submission } as const, { status: 500 });
