@@ -1,9 +1,8 @@
-import { conform, useForm } from "@conform-to/react";
+import { conform, useForm, type Submission } from "@conform-to/react";
 import { getFieldsetConstraint, parse } from "@conform-to/zod";
-import { verifyTOTP } from "@epic-web/totp";
+import { generateTOTP, verifyTOTP } from "@epic-web/totp";
 import {
 	json,
-	redirect,
 	type LoaderFunctionArgs,
 	type ActionFunctionArgs,
 } from "@remix-run/node";
@@ -20,9 +19,8 @@ import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
-import { useIsPending } from "#app/utils/misc.tsx";
-import { verifySessionStorage } from "#app/utils/verification.server.ts";
-import { onboardingEmailSessionKey } from "./onboarding.tsx";
+import { getDomainUrl, useIsPending } from "#app/utils/misc.tsx";
+import { handleVerification as handleOnboardingVerification } from "./onboarding.tsx";
 
 export const codeQueryParam = "code";
 export const targetQueryParam = "target";
@@ -63,6 +61,105 @@ export async function action({ request }: ActionFunctionArgs) {
 	return validateRequest(request, formData);
 }
 
+export function getRedirectToUrl({
+	request,
+	type,
+	target,
+	redirectTo,
+}: {
+	request: Request;
+	type: VerificationTypes;
+	target: string;
+	redirectTo?: string;
+}) {
+	const redirectToUrl = new URL(`${getDomainUrl(request)}/verify`);
+	redirectToUrl.searchParams.set(typeQueryParam, type);
+	redirectToUrl.searchParams.set(targetQueryParam, target);
+	if (redirectTo) {
+		redirectToUrl.searchParams.set(redirectToQueryParam, redirectTo);
+	}
+	return redirectToUrl;
+}
+
+export async function prepareVerification({
+	period,
+	request,
+	type,
+	target,
+	redirectTo: postVerificationRedirectTo,
+}: {
+	period: number;
+	request: Request;
+	type: VerificationTypes;
+	target: string;
+	redirectTo?: string;
+}) {
+	const verifyUrl = getRedirectToUrl({
+		request,
+		type,
+		target,
+		redirectTo: postVerificationRedirectTo,
+	});
+	const redirectTo = new URL(verifyUrl.toString());
+
+	const { otp, ...verificationConfig } = generateTOTP({
+		algorithm: "SHA256",
+		period,
+	});
+
+	const verificationData = {
+		type,
+		target,
+		...verificationConfig,
+		expiresAt: new Date(Date.now() + verificationConfig.period * 1000),
+	};
+	await prisma.verification.upsert({
+		where: { target_type: { target, type } },
+		create: verificationData,
+		update: verificationData,
+	});
+
+	// add the otp to the url we'll email the user.
+	verifyUrl.searchParams.set(codeQueryParam, otp);
+
+	return { otp, redirectTo, verifyUrl };
+}
+
+export type VerifyFunctionArgs = {
+	request: Request;
+	submission: Submission<z.infer<typeof VerifySchema>>;
+	body: FormData | URLSearchParams;
+};
+
+export async function isCodeValid({
+	code,
+	type,
+	target,
+}: {
+	code: string;
+	type: VerificationTypes;
+	target: string;
+}) {
+	const verification = await prisma.verification.findUnique({
+		where: {
+			target_type: { target, type },
+			OR: [{ expiresAt: { gt: new Date() } }, { expiresAt: null }],
+		},
+		select: { algorithm: true, secret: true, period: true, charSet: true },
+	});
+	if (!verification) return false;
+	const result = verifyTOTP({
+		otp: code,
+		secret: verification.secret,
+		algorithm: verification.algorithm,
+		period: verification.period,
+		charSet: verification.charSet,
+	});
+	if (!result) return false;
+
+	return true;
+}
+
 async function validateRequest(
 	request: Request,
 	body: URLSearchParams | FormData,
@@ -70,33 +167,10 @@ async function validateRequest(
 	const submission = await parse(body, {
 		schema: () =>
 			VerifySchema.superRefine(async (data, ctx) => {
-				const verification = await prisma.verification.findUnique({
-					select: {
-						secret: true,
-						period: true,
-						digits: true,
-						algorithm: true,
-						charSet: true,
-					},
-					where: {
-						target_type: {
-							target: data[targetQueryParam],
-							type: data[typeQueryParam],
-						},
-						OR: [{ expiresAt: { gt: new Date() } }, { expiresAt: null }],
-					},
-				});
-				if (!verification) {
-					ctx.addIssue({
-						path: ["code"],
-						code: z.ZodIssueCode.custom,
-						message: `Invalid code`,
-					});
-					return z.NEVER;
-				}
-				const codeIsValid = verifyTOTP({
-					otp: data[codeQueryParam],
-					...verification,
+				const codeIsValid = await isCodeValid({
+					code: data[codeQueryParam],
+					type: data[typeQueryParam],
+					target: data[targetQueryParam],
 				});
 				if (!codeIsValid) {
 					ctx.addIssue({
@@ -128,18 +202,13 @@ async function validateRequest(
 		},
 	});
 
-	const verifySession = await verifySessionStorage.getSession(
-		request.headers.get("cookie"),
-	);
-	verifySession.set(
-		onboardingEmailSessionKey,
-		submission.value[targetQueryParam],
-	);
-	return redirect("/onboarding", {
-		headers: {
-			"set-cookie": await verifySessionStorage.commitSession(verifySession),
-		},
-	});
+	switch (submissionValue[typeQueryParam]) {
+		// 🐨 add 'reset-password' case to this switch statement
+		// and call the handler in ./reset-password.tsx file
+		case "onboarding": {
+			return handleOnboardingVerification({ request, body, submission });
+		}
+	}
 }
 
 export default function VerifyRoute() {
