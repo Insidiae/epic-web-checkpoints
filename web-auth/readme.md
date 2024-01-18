@@ -190,3 +190,11 @@ TODO: 📝 Elaboration
 2. [Handle Verification](./13.change-email/02.handle-verification/)
 
 TODO: 📝 Elaboration
+
+## [14. Enable Two Factor Auth](./14.enable-2fa/)
+
+1. [Create Verification](./14.enable-2fa/01.create/)
+2. QR Code
+3. Verify Code
+
+TODO: 📝 Elaboration
