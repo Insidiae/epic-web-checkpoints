@@ -195,6 +195,6 @@ TODO: 📝 Elaboration
 
 1. [Create Verification](./14.enable-2fa/01.create/)
 2. [QR Code](./14.enable-2fa/02.qr-code/)
-3. Verify Code
+3. [Verify Code](./14.enable-2fa/03.verify/)
 
 TODO: 📝 Elaboration

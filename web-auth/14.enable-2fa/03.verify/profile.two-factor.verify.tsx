@@ -1,44 +1,39 @@
-import { conform, useForm } from "@conform-to/react";
-import { getFieldsetConstraint, parse } from "@conform-to/zod";
-import { getTOTPAuthUri } from "@epic-web/totp";
-import {
-	json,
-	redirect,
-	type LoaderFunctionArgs,
-	type ActionFunctionArgs,
-} from "@remix-run/node";
+import { conform, useForm } from '@conform-to/react'
+import { getFieldsetConstraint, parse } from '@conform-to/zod'
+import { getTOTPAuthUri } from '@epic-web/totp'
+import { json, redirect, type DataFunctionArgs } from '@remix-run/node'
 import {
 	Form,
 	useActionData,
 	useLoaderData,
 	useNavigation,
-} from "@remix-run/react";
-import * as QRCode from "qrcode";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
-import { z } from "zod";
-import { Field } from "#app/components/forms.tsx";
-import { Icon } from "#app/components/ui/icon.tsx";
-import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { isCodeValid } from "#app/routes/_auth+/verify.tsx";
-import { requireUserId } from "#app/utils/auth.server.ts";
-import { validateCSRF } from "#app/utils/csrf.server.ts";
-import { prisma } from "#app/utils/db.server.ts";
-import { getDomainUrl, useIsPending } from "#app/utils/misc.tsx";
-import { redirectWithToast } from "#app/utils/toast.server.ts";
-import { twoFAVerificationType } from "./profile.two-factor.tsx";
+} from '@remix-run/react'
+import * as QRCode from 'qrcode'
+import { AuthenticityTokenInput } from 'remix-utils/csrf/react'
+import { z } from 'zod'
+import { Field } from '#app/components/forms.tsx'
+import { Icon } from '#app/components/ui/icon.tsx'
+import { StatusButton } from '#app/components/ui/status-button.tsx'
+import { isCodeValid } from '#app/routes/_auth+/verify.tsx'
+import { requireUserId } from '#app/utils/auth.server.ts'
+import { validateCSRF } from '#app/utils/csrf.server.ts'
+import { prisma } from '#app/utils/db.server.ts'
+import { getDomainUrl, useIsPending } from '#app/utils/misc.tsx'
+import { redirectWithToast } from '#app/utils/toast.server.ts'
+import { twoFAVerificationType } from './profile.two-factor.tsx'
 
 export const handle = {
 	breadcrumb: <Icon name="check">Verify</Icon>,
-};
+}
 
 const VerifySchema = z.object({
 	code: z.string().min(6).max(6),
-});
+})
 
-export const twoFAVerifyVerificationType = "2fa-verify";
+export const twoFAVerifyVerificationType = '2fa-verify'
 
-export async function loader({ request }: LoaderFunctionArgs) {
-	const userId = await requireUserId(request);
+export async function loader({ request }: DataFunctionArgs) {
+	const userId = await requireUserId(request)
 	const verification = await prisma.verification.findUnique({
 		where: {
 			target_type: { type: twoFAVerifyVerificationType, target: userId },
@@ -50,97 +45,97 @@ export async function loader({ request }: LoaderFunctionArgs) {
 			period: true,
 			digits: true,
 		},
-	});
-
+	})
 	if (!verification) {
-		return redirect("/settings/profile/two-factor");
+		return redirect('/settings/profile/two-factor')
 	}
-
 	const user = await prisma.user.findUniqueOrThrow({
 		where: { id: userId },
 		select: { email: true },
-	});
-
-	const issuer = new URL(getDomainUrl(request)).host;
+	})
+	const issuer = new URL(getDomainUrl(request)).host
 	const otpUri = getTOTPAuthUri({
 		...verification,
 		accountName: user.email,
 		issuer,
-	});
-
-	const qrCode = await QRCode.toDataURL(otpUri);
-	return json({ qrCode, otpUri });
+	})
+	const qrCode = await QRCode.toDataURL(otpUri)
+	return json({ otpUri, qrCode })
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-	const userId = await requireUserId(request);
-	const formData = await request.formData();
-	await validateCSRF(formData, request.headers);
+export async function action({ request }: DataFunctionArgs) {
+	const userId = await requireUserId(request)
+	const formData = await request.formData()
+	await validateCSRF(formData, request.headers)
 
-	if (formData.get("intent") === "cancel") {
+	if (formData.get('intent') === 'cancel') {
 		await prisma.verification.deleteMany({
 			where: { type: twoFAVerifyVerificationType, target: userId },
-		});
-		return redirect("/settings/profile/two-factor");
+		})
+		return redirect('/settings/profile/two-factor')
 	}
 	const submission = await parse(formData, {
 		schema: () =>
 			VerifySchema.superRefine(async (data, ctx) => {
+				// 🐨 determine whether the code is valid using the isCodeValid util from
+				// '#app/routes/_auth+/verify.tsx'
 				const codeIsValid = await isCodeValid({
 					code: data.code,
 					type: twoFAVerifyVerificationType,
 					target: userId,
-				});
+				})
 				if (!codeIsValid) {
 					ctx.addIssue({
-						path: ["code"],
+						path: ['code'],
 						code: z.ZodIssueCode.custom,
 						message: `Invalid code`,
-					});
-					return z.NEVER;
+					})
+					return z.NEVER
 				}
 			}),
 
 		async: true,
-	});
+	})
 
-	if (submission.intent !== "submit") {
-		return json({ status: "idle", submission } as const);
+	if (submission.intent !== 'submit') {
+		return json({ status: 'idle', submission } as const)
 	}
 	if (!submission.value) {
-		return json({ status: "error", submission } as const, { status: 400 });
+		return json({ status: 'error', submission } as const, { status: 400 })
 	}
 
+	// 🐨 update the verification from the twoFAVerifyVerifycationType to the twoFAVerificationType
 	await prisma.verification.update({
 		where: {
 			target_type: { type: twoFAVerifyVerificationType, target: userId },
 		},
+		// 🐨 set the expiresAt to null! This should never expire.
 		data: { type: twoFAVerificationType, expiresAt: null },
-	});
+	})
 
-	throw await redirectWithToast("/settings/profile/two-factor", {
-		type: "success",
-		title: "Enabled",
-		description: "Two-factor authentication has been enabled.",
-	});
+	throw await redirectWithToast('/settings/profile/two-factor', {
+		type: 'success',
+		title: 'Enabled',
+		description: 'Two-factor authentication has been enabled.',
+	})
 }
 
 export default function TwoFactorRoute() {
-	const data = useLoaderData<typeof loader>();
-	const actionData = useActionData<typeof action>();
-	const navigation = useNavigation();
+	const data = useLoaderData<typeof loader>()
+	const actionData = useActionData<typeof action>()
+	const navigation = useNavigation()
 
-	const isPending = useIsPending();
-	const pendingIntent = isPending ? navigation.formData?.get("intent") : null;
+	const isPending = useIsPending()
+	const pendingIntent = isPending ? navigation.formData?.get('intent') : null
 
 	const [form, fields] = useForm({
-		id: "verify-form",
+		id: 'verify-form',
 		constraint: getFieldsetConstraint(VerifySchema),
 		lastSubmission: actionData?.submission,
 		onValidate({ formData }) {
-			return parse(formData, { schema: VerifySchema });
+			return parse(formData, { schema: VerifySchema })
 		},
-	});
+	})
 
 	return (
 		<div>
@@ -172,7 +167,7 @@ export default function TwoFactorRoute() {
 						<Field
 							labelProps={{
 								htmlFor: fields.code.id,
-								children: "Code",
+								children: 'Code',
 							}}
 							inputProps={{ ...conform.input(fields.code), autoFocus: true }}
 							errors={fields.code.errors}
@@ -181,9 +176,9 @@ export default function TwoFactorRoute() {
 							<StatusButton
 								className="w-full"
 								status={
-									pendingIntent === "verify"
-										? "pending"
-										: actionData?.status ?? "idle"
+									pendingIntent === 'verify'
+										? 'pending'
+										: actionData?.status ?? 'idle'
 								}
 								type="submit"
 								name="intent"
@@ -195,7 +190,7 @@ export default function TwoFactorRoute() {
 							<StatusButton
 								className="w-full"
 								variant="secondary"
-								status={pendingIntent === "cancel" ? "pending" : "idle"}
+								status={pendingIntent === 'cancel' ? 'pending' : 'idle'}
 								type="submit"
 								name="intent"
 								value="cancel"
@@ -208,5 +203,5 @@ export default function TwoFactorRoute() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }

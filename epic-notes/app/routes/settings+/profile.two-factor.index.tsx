@@ -13,11 +13,16 @@ import { requireUserId } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { useIsPending } from "#app/utils/misc.tsx";
+import { twoFAVerificationType } from "./profile.two-factor.tsx";
 import { twoFAVerifyVerificationType } from "./profile.two-factor.verify.tsx";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-	await requireUserId(request);
-	return json({ isTwoFAEnabled: false });
+	const userId = await requireUserId(request);
+	const verification = await prisma.verification.findUnique({
+		where: { target_type: { type: twoFAVerificationType, target: userId } },
+		select: { id: true },
+	});
+	return json({ isTwoFAEnabled: Boolean(verification) });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
