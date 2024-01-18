@@ -20,12 +20,60 @@ import { login, requireAnonymous, sessionKey } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { checkHoneypot } from "#app/utils/honeypot.server.ts";
-import { useIsPending } from "#app/utils/misc.tsx";
+import { invariant, useIsPending } from "#app/utils/misc.tsx";
 import { sessionStorage } from "#app/utils/session.server.ts";
+import { redirectWithToast } from "#app/utils/toast.server.ts";
 import { PasswordSchema, UsernameSchema } from "#app/utils/user-validation.ts";
 import { verifySessionStorage } from "#app/utils/verification.server.ts";
 import { twoFAVerificationType } from "../settings+/profile.two-factor.tsx";
-import { getRedirectToUrl } from "./verify.tsx";
+import { getRedirectToUrl, type VerifyFunctionArgs } from "./verify.tsx";
+
+const unverifiedSessionIdKey = "unverified-session-id";
+const rememberKey = "remember-me";
+
+export async function handleVerification({
+	request,
+	submission,
+}: VerifyFunctionArgs) {
+	invariant(submission.value, "Submission should have a value by this point");
+	const cookieSession = await sessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+
+	const session = await prisma.session.findUnique({
+		select: { expirationDate: true },
+		where: { id: verifySession.get(unverifiedSessionIdKey) },
+	});
+	if (!session) {
+		throw await redirectWithToast("/login", {
+			type: "error",
+			title: "Invalid session",
+			description: "Could not find session to verify. Please try again.",
+		});
+	}
+
+	cookieSession.set(sessionKey, verifySession.get(unverifiedSessionIdKey));
+
+	const remember = verifySession.get(rememberKey);
+	const { redirectTo } = submission.value;
+
+	const headers = new Headers();
+	headers.append(
+		"set-cookie",
+		await sessionStorage.commitSession(cookieSession, {
+			expires: remember ? session.expirationDate : undefined,
+		}),
+	);
+	headers.append(
+		"set-cookie",
+		await verifySessionStorage.destroySession(verifySession),
+	);
+
+	return redirect(safeRedirect(redirectTo), { headers });
+}
 
 const LoginFormSchema = z.object({
 	username: UsernameSchema,
@@ -87,8 +135,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	if (userHasTwoFactor) {
 		const verifySession = await verifySessionStorage.getSession();
-		verifySession.set("unverified-session-id", session.id);
-		verifySession.set("remember-me", remember);
+		verifySession.set(unverifiedSessionIdKey, session.id);
+		verifySession.set(rememberKey, remember);
 		const redirectUrl = getRedirectToUrl({
 			request,
 			type: twoFAVerificationType,

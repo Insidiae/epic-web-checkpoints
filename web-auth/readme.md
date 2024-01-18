@@ -202,6 +202,6 @@ TODO: 📝 Elaboration
 ## [15. Verify 2FA Code](./15.verify-2fa/)
 
 1. [Unverified Session](./15.verify-2fa/01.unverified/)
-2. Handle Verification
+2. [Handle Verification](./15.verify-2fa/02.verify/)
 
 TODO: 📝 Elaboration
