@@ -180,6 +180,6 @@ TODO: 📝 Elaboration
 ## [12. Reset Password](./12.reset-password/)
 
 1. [Handle Verification](./12.reset-password/01.handle-verification/)
-2. Reset Password
+2. [Reset Password](./12.reset-password/02.reset-password/)
 
 TODO: 📝 Elaboration

@@ -3,6 +3,7 @@ import { getFieldsetConstraint, parse } from "@conform-to/zod";
 import {
 	json,
 	redirect,
+	type LoaderFunctionArgs,
 	type ActionFunctionArgs,
 	type MetaFunction,
 } from "@remix-run/node";
@@ -11,6 +12,7 @@ import { z } from "zod";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { ErrorList, Field } from "#app/components/forms.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
+import { requireAnonymous, resetUserPassword } from "#app/utils/auth.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { invariant, useIsPending } from "#app/utils/misc.tsx";
 import { PasswordSchema } from "#app/utils/user-validation.ts";
@@ -57,12 +59,27 @@ const ResetPasswordSchema = z
 		path: ["confirmPassword"],
 	});
 
-export async function loader() {
-	const resetPasswordUsername = "get this from the session";
+async function requireResetPasswordUsername(request: Request) {
+	await requireAnonymous(request);
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	const resetPasswordUsername = verifySession.get(
+		resetPasswordUsernameSessionKey,
+	);
+	if (typeof resetPasswordUsername !== "string" || !resetPasswordUsername) {
+		throw redirect("/login");
+	}
+	return resetPasswordUsername;
+}
+
+export async function loader({ request }: LoaderFunctionArgs) {
+	const resetPasswordUsername = await requireResetPasswordUsername(request);
 	return json({ resetPasswordUsername });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
+	const resetPasswordUsername = await requireResetPasswordUsername(request);
 	const formData = await request.formData();
 	const submission = parse(formData, {
 		schema: ResetPasswordSchema,
@@ -74,7 +91,17 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json({ status: "error", submission } as const, { status: 400 });
 	}
 
-	throw new Error("This has not yet been implemented");
+	const { password } = submission.value;
+	await resetUserPassword({ username: resetPasswordUsername, password });
+
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	return redirect("/login", {
+		headers: {
+			"set-cookie": await verifySessionStorage.destroySession(verifySession),
+		},
+	});
 }
 
 export const meta: MetaFunction = () => {
