@@ -210,7 +210,7 @@ TODO: 📝 Elaboration
 
 1. [Delete Verification](./16.2fa-check/01.delete/)
 2. [Should Reverify](./16.2fa-check/02.should-reverify/)
-3. Require Reverification
+3. [Require Reverification](./16.2fa-check/03.require-reverify/)
 4. Cookie Expiration Override
 
 TODO: 📝 Elaboration
