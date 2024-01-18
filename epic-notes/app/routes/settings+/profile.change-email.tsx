@@ -21,7 +21,8 @@ import { requireUserId } from "#app/utils/auth.server.ts";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { sendEmail } from "#app/utils/email.server.ts";
-import { useIsPending } from "#app/utils/misc.tsx";
+import { invariant, useIsPending } from "#app/utils/misc.tsx";
+import { redirectWithToast } from "#app/utils/toast.server.ts";
 import { EmailSchema } from "#app/utils/user-validation.ts";
 import { verifySessionStorage } from "#app/utils/verification.server.ts";
 
@@ -35,8 +36,48 @@ export async function handleVerification({
 	request,
 	submission,
 }: VerifyFunctionArgs) {
-	submission.error[""] = [`We'll implement this soon`];
-	return json({ status: "error", submission } as const, { status: 500 });
+	invariant(submission.value, "submission.value should be defined by now");
+
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	const newEmail = verifySession.get(newEmailAddressSessionKey);
+	if (!newEmail) {
+		submission.error[""] = [
+			"You must submit the code on the same device that requested the email change.",
+		];
+		return json({ status: "error", submission } as const, { status: 400 });
+	}
+
+	const preUpdateUser = await prisma.user.findFirstOrThrow({
+		select: { email: true },
+		where: { id: submission.value.target },
+	});
+	const user = await prisma.user.update({
+		where: { id: submission.value.target },
+		select: { id: true, email: true, username: true },
+		data: { email: newEmail },
+	});
+
+	void sendEmail({
+		to: preUpdateUser.email,
+		subject: "Epic Stack email changed",
+		react: <EmailChangeNoticeEmail userId={user.id} />,
+	});
+
+	throw await redirectWithToast(
+		"/settings/profile",
+		{
+			title: "Email Changed",
+			type: "success",
+			description: `Your email has been changed to ${user.email}`,
+		},
+		{
+			headers: {
+				"set-cookie": await verifySessionStorage.destroySession(verifySession),
+			},
+		},
+	);
 }
 
 const ChangeEmailSchema = z.object({

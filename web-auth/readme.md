@@ -187,6 +187,6 @@ TODO: 📝 Elaboration
 ## [13. Change Email](./13.change-email/01.totp/)
 
 1. [Generate TOTP](./13.change-email/01.totp/)
-2. Handle Verification
+2. [Handle Verification](./13.change-email/02.handle-verification/)
 
 TODO: 📝 Elaboration
