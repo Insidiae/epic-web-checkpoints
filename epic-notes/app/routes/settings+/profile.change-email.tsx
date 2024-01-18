@@ -15,6 +15,7 @@ import { Icon } from "#app/components/ui/icon.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import {
 	prepareVerification,
+	requireRecentVerification,
 	type VerifyFunctionArgs,
 } from "#app/routes/_auth+/verify.tsx";
 import { requireUserId } from "#app/utils/auth.server.ts";
@@ -86,6 +87,7 @@ const ChangeEmailSchema = z.object({
 
 export async function loader({ request }: LoaderFunctionArgs) {
 	const userId = await requireUserId(request);
+	await requireRecentVerification({ request, userId });
 	const user = await prisma.user.findUnique({
 		where: { id: userId },
 		select: { email: true },
@@ -99,6 +101,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
 	const userId = await requireUserId(request);
+	await requireRecentVerification({ request, userId });
 	const formData = await request.formData();
 	await validateCSRF(formData, request.headers);
 	const submission = await parse(formData, {

@@ -22,8 +22,13 @@ import { handleVerification as handleChangeEmailVerification } from "#app/routes
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { getDomainUrl, useIsPending } from "#app/utils/misc.tsx";
+import { redirectWithToast } from "#app/utils/toast.server.ts";
+import { twoFAVerificationType } from "../settings+/profile.two-factor.tsx";
 import { type twoFAVerifyVerificationType } from "../settings+/profile.two-factor.verify.tsx";
-import { handleVerification as handleLoginTwoFactorVerification } from "./login.tsx";
+import {
+	handleVerification as handleLoginTwoFactorVerification,
+	shouldRequestTwoFA,
+} from "./login.tsx";
 import { handleVerification as handleOnboardingVerification } from "./onboarding.tsx";
 import { handleVerification as handleResetPasswordVerification } from "./reset-password.tsx";
 
@@ -84,6 +89,28 @@ export function getRedirectToUrl({
 		redirectToUrl.searchParams.set(redirectToQueryParam, redirectTo);
 	}
 	return redirectToUrl;
+}
+
+export async function requireRecentVerification({
+	request,
+	userId,
+}: {
+	request: Request;
+	userId: string;
+}) {
+	if (await shouldRequestTwoFA({ request, userId })) {
+		const reqUrl = new URL(request.url);
+		const redirectUrl = getRedirectToUrl({
+			request,
+			target: userId,
+			type: twoFAVerificationType,
+			redirectTo: reqUrl.pathname + reqUrl.search,
+		});
+		throw await redirectWithToast(redirectUrl.toString(), {
+			title: "Please Reverify",
+			description: "Please reverify your account before proceeding",
+		});
+	}
 }
 
 export async function prepareVerification({
