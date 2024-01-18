@@ -194,7 +194,7 @@ TODO: 📝 Elaboration
 ## [14. Enable Two Factor Auth](./14.enable-2fa/)
 
 1. [Create Verification](./14.enable-2fa/01.create/)
-2. QR Code
+2. [QR Code](./14.enable-2fa/02.qr-code/)
 3. Verify Code
 
 TODO: 📝 Elaboration
