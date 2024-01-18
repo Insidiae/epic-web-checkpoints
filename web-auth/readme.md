@@ -176,3 +176,10 @@ We also set up a new `/onboarding` route to handle the next step after the user 
 3. [Verify Code](./11.verification/03.verify-code/)
 
 TODO: 📝 Elaboration
+
+## [12. Reset Password](./12.reset-password/)
+
+1. [Handle Verification](./12.reset-password/01.handle-verification/)
+2. Reset Password
+
+TODO: 📝 Elaboration

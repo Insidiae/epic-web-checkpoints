@@ -2,7 +2,8 @@ import { conform, useForm } from "@conform-to/react";
 import { getFieldsetConstraint, parse } from "@conform-to/zod";
 import {
 	json,
-	type DataFunctionArgs,
+	redirect,
+	type ActionFunctionArgs,
 	type MetaFunction,
 } from "@remix-run/node";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
@@ -10,15 +11,40 @@ import { z } from "zod";
 import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { ErrorList, Field } from "#app/components/forms.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
-import { useIsPending } from "#app/utils/misc.tsx";
+import { prisma } from "#app/utils/db.server.ts";
+import { invariant, useIsPending } from "#app/utils/misc.tsx";
 import { PasswordSchema } from "#app/utils/user-validation.ts";
+import { verifySessionStorage } from "#app/utils/verification.server.ts";
 import { type VerifyFunctionArgs } from "./verify.tsx";
+
+const resetPasswordUsernameSessionKey = "resetPasswordUsername";
 
 export async function handleVerification({
 	request,
 	submission,
 }: VerifyFunctionArgs) {
-	//TODO: We'll implement this soon!
+	invariant(submission.value, "submission.value should be defined by now");
+	const target = submission.value.target;
+	const user = await prisma.user.findFirst({
+		where: { OR: [{ email: target }, { username: target }] },
+		select: { email: true, username: true },
+	});
+	// we don't want to say the user is not found if the email is not found
+	// because that would allow an attacker to check if an email is registered
+	if (!user) {
+		submission.error.code = ["Invalid code"];
+		return json({ status: "error", submission } as const, { status: 400 });
+	}
+
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	verifySession.set(resetPasswordUsernameSessionKey, user.username);
+	return redirect("/reset-password", {
+		headers: {
+			"set-cookie": await verifySessionStorage.commitSession(verifySession),
+		},
+	});
 }
 
 const ResetPasswordSchema = z
@@ -36,7 +62,7 @@ export async function loader() {
 	return json({ resetPasswordUsername });
 }
 
-export async function action({ request }: DataFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	const submission = parse(formData, {
 		schema: ResetPasswordSchema,
