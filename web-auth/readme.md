@@ -205,3 +205,12 @@ TODO: 📝 Elaboration
 2. [Handle Verification](./15.verify-2fa/02.verify/)
 
 TODO: 📝 Elaboration
+
+## [16. Disable Two Factor Auth](./16.2fa-check/)
+
+1. [Delete Verification](./16.2fa-check/01.delete/)
+2. Should Reverify
+3. Require Reverification
+4. Cookie Expiration Override
+
+TODO: 📝 Elaboration
