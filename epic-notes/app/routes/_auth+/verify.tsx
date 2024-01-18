@@ -17,6 +17,7 @@ import { z } from "zod";
 import { ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
+import { handleVerification as handleChangeEmailVerification } from "#app/routes/settings+/profile.change-email.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { getDomainUrl, useIsPending } from "#app/utils/misc.tsx";
@@ -28,7 +29,7 @@ export const targetQueryParam = "target";
 export const typeQueryParam = "type";
 export const redirectToQueryParam = "redirectTo";
 
-const types = ["onboarding", "reset-password"] as const;
+const types = ["onboarding", "reset-password", "change-email"] as const;
 const VerificationTypeSchema = z.enum(types);
 export type VerificationTypes = z.infer<typeof VerificationTypeSchema>;
 
@@ -209,6 +210,9 @@ async function validateRequest(
 		}
 		case "onboarding": {
 			return handleOnboardingVerification({ request, body, submission });
+		}
+		case "change-email": {
+			return handleChangeEmailVerification({ request, body, submission });
 		}
 	}
 }

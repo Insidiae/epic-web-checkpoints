@@ -183,3 +183,10 @@ TODO: 📝 Elaboration
 2. [Reset Password](./12.reset-password/02.reset-password/)
 
 TODO: 📝 Elaboration
+
+## [13. Change Email](./13.change-email/01.totp/)
+
+1. [Generate TOTP](./13.change-email/01.totp/)
+2. Handle Verification
+
+TODO: 📝 Elaboration
