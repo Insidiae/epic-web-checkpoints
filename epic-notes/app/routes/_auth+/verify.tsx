@@ -14,6 +14,7 @@ import {
 } from "@remix-run/react";
 import { AuthenticityTokenInput } from "remix-utils/csrf/react";
 import { z } from "zod";
+import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { ErrorList, Field } from "#app/components/forms.tsx";
 import { Spacer } from "#app/components/spacer.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
@@ -226,6 +227,30 @@ export default function VerifyRoute() {
 	const [searchParams] = useSearchParams();
 	const isPending = useIsPending();
 	const actionData = useActionData<typeof action>();
+	const type = VerificationTypeSchema.parse(searchParams.get(typeQueryParam));
+
+	const checkEmail = (
+		<>
+			<h1 className="text-h1">Check your email</h1>
+			<p className="mt-3 text-body-md text-muted-foreground">
+				We've sent you a code to verify your email address.
+			</p>
+		</>
+	);
+
+	const headings: Record<VerificationTypes, React.ReactNode> = {
+		onboarding: checkEmail,
+		"reset-password": checkEmail,
+		"change-email": checkEmail,
+		"2fa": (
+			<>
+				<h1 className="text-h1">Check your 2FA app</h1>
+				<p className="mt-3 text-body-md text-muted-foreground">
+					Please enter your 2FA code to verify your identity.
+				</p>
+			</>
+		),
+	};
 
 	const [form, fields] = useForm({
 		id: "verify-form",
@@ -236,7 +261,7 @@ export default function VerifyRoute() {
 		},
 		defaultValue: {
 			code: searchParams.get(codeQueryParam) ?? "",
-			type: searchParams.get(typeQueryParam) ?? "",
+			type,
 			target: searchParams.get(targetQueryParam) ?? "",
 			redirectTo: searchParams.get(redirectToQueryParam) ?? "",
 		},
@@ -244,12 +269,7 @@ export default function VerifyRoute() {
 
 	return (
 		<div className="container flex flex-col justify-center pb-32 pt-20">
-			<div className="text-center">
-				<h1 className="text-h1">Check your email</h1>
-				<p className="mt-3 text-body-md text-muted-foreground">
-					We've sent you a code to verify your email address.
-				</p>
-			</div>
+			<div className="text-center">{headings[type]}</div>
 
 			<Spacer size="xs" />
 
@@ -292,4 +312,8 @@ export default function VerifyRoute() {
 			</div>
 		</div>
 	);
+}
+
+export function ErrorBoundary() {
+	return <GeneralErrorBoundary />;
 }
