@@ -23,6 +23,7 @@ import {
 	authenticator,
 	requireAnonymous,
 	sessionKey,
+	signupWithConnection,
 } from "#app/utils/auth.server.ts";
 import { ProviderNameSchema } from "#app/utils/connections.tsx";
 import { prisma } from "#app/utils/db.server.ts";
@@ -34,6 +35,7 @@ import { type VerifyFunctionArgs } from "./verify.tsx";
 
 export const onboardingEmailSessionKey = "onboardingEmail";
 export const providerIdKey = "providerId";
+export const prefilledProfileKey = "prefilledProfile";
 
 const SignupFormSchema = z.object({
 	imageUrl: z.string().optional(),
@@ -79,6 +81,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	const cookieSession = await sessionStorage.getSession(
 		request.headers.get("cookie"),
 	);
+	const verifySession = await verifySessionStorage.getSession(
+		request.headers.get("cookie"),
+	);
+	const prefilledProfile = verifySession.get(prefilledProfileKey);
 
 	const formError = cookieSession.get(authenticator.sessionErrorKey);
 
@@ -87,7 +93,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		status: "idle",
 		submission: {
 			intent: "",
-			payload: {} as Record<string, unknown>,
+			payload: (prefilledProfile ?? {}) as Record<string, unknown>,
 			error: {
 				"": typeof formError === "string" ? [formError] : [],
 			},
@@ -120,13 +126,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
 				return;
 			}
 		}).transform(async data => {
-			console.log("TODO: implement third party onboarding", {
+			const session = await signupWithConnection({
 				...data,
 				email,
 				providerId,
 				providerName,
 			});
-			const session = { id: "TODO", expirationDate: new Date() };
 			return { ...data, session };
 		}),
 		async: true,

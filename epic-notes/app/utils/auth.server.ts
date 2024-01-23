@@ -1,11 +1,12 @@
-import { type Password, type User } from "@prisma/client";
+import { type Connection, type Password, type User } from "@prisma/client";
 import { redirect } from "@remix-run/node";
 import bcrypt from "bcryptjs";
 import { Authenticator } from "remix-auth";
 import { safeRedirect } from "remix-utils/safe-redirect";
 import { prisma } from "#app/utils/db.server.ts";
 import { connectionSessionStorage, providers } from "./connections.server.ts";
-import { combineResponseInits } from "./misc.tsx";
+import { type ProviderName } from "./connections.tsx";
+import { combineResponseInits, downloadFile } from "./misc.tsx";
 import { type ProviderUser } from "./providers/provider.ts";
 import { sessionStorage } from "./session.server.ts";
 
@@ -156,6 +157,43 @@ export async function signup({
 							hash: hashedPassword,
 						},
 					},
+				},
+			},
+		},
+		select: { id: true, expirationDate: true },
+	});
+
+	return session;
+}
+
+export async function signupWithConnection({
+	email,
+	username,
+	name,
+	providerId,
+	providerName,
+	imageUrl,
+}: {
+	email: User["email"];
+	username: User["username"];
+	name: User["name"];
+	providerId: Connection["providerId"];
+	providerName: ProviderName;
+	imageUrl?: string;
+}) {
+	const session = await prisma.session.create({
+		data: {
+			expirationDate: getSessionExpirationDate(),
+			user: {
+				create: {
+					email: email.toLowerCase(),
+					username: username.toLowerCase(),
+					name,
+					roles: { connect: { name: "user" } },
+					connections: { create: { providerId, providerName } },
+					image: imageUrl
+						? { create: await downloadFile(imageUrl) }
+						: undefined,
 				},
 			},
 		},

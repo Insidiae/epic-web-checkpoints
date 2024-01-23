@@ -258,6 +258,6 @@ TODO: 📝 Elaboration
 ## [19. Third Party Login](./19.third-party-login/)
 
 1. [Login](./19.third-party-login/01.login/)
-2. Onboarding
+2. [Onboarding](./19.third-party-login/02.onboarding/)
 
 TODO: 📝 Elaboration
