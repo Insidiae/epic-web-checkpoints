@@ -268,3 +268,11 @@ TODO: 📝 Elaboration
 2. [Add Connection](./20.connection/02.connect/)
 
 TODO: 📝 Elaboration
+
+## [21. Redirect Cookie](./21.redirect-cookie/)
+
+1.  [Pass Redirect URL](./21.redirect-cookie/01.pass/)
+2.  Set Cookie
+3.  Redirect
+
+TODO: 📝 Elaboration
