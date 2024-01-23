@@ -21,7 +21,11 @@ import { ProviderConnectionForm } from "#app/utils/connections.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { checkHoneypot } from "#app/utils/honeypot.server.ts";
-import { invariant, useIsPending } from "#app/utils/misc.tsx";
+import {
+	combineResponseInits,
+	invariant,
+	useIsPending,
+} from "#app/utils/misc.tsx";
 import { sessionStorage } from "#app/utils/session.server.ts";
 import { redirectWithToast } from "#app/utils/toast.server.ts";
 import { PasswordSchema, UsernameSchema } from "#app/utils/user-validation.ts";
@@ -33,17 +37,20 @@ const verifiedTimeKey = "verified-time";
 const unverifiedSessionIdKey = "unverified-session-id";
 const rememberKey = "remember-me";
 
-export async function handleNewSession({
-	request,
-	session,
-	redirectTo,
-	remember = false,
-}: {
-	request: Request;
-	session: { userId: string; id: string; expirationDate: Date };
-	redirectTo?: string;
-	remember?: boolean;
-}) {
+export async function handleNewSession(
+	{
+		request,
+		session,
+		redirectTo,
+		remember = false,
+	}: {
+		request: Request;
+		session: { userId: string; id: string; expirationDate: Date };
+		redirectTo?: string;
+		remember?: boolean;
+	},
+	responseInit?: ResponseInit,
+) {
 	if (await shouldRequestTwoFA({ request, userId: session.userId })) {
 		const verifySession = await verifySessionStorage.getSession();
 		verifySession.set(unverifiedSessionIdKey, session.id);
@@ -53,24 +60,37 @@ export async function handleNewSession({
 			type: twoFAVerificationType,
 			target: session.userId,
 		});
-		return redirect(redirectUrl.toString(), {
-			headers: {
-				"set-cookie": await verifySessionStorage.commitSession(verifySession),
-			},
-		});
+		return redirect(
+			redirectUrl.toString(),
+			combineResponseInits(
+				{
+					headers: {
+						"set-cookie":
+							await verifySessionStorage.commitSession(verifySession),
+					},
+				},
+				responseInit,
+			),
+		);
 	} else {
 		const cookieSession = await sessionStorage.getSession(
 			request.headers.get("cookie"),
 		);
 		cookieSession.set(sessionKey, session.id);
 
-		return redirect(safeRedirect(redirectTo), {
-			headers: {
-				"set-cookie": await sessionStorage.commitSession(cookieSession, {
-					expires: remember ? session.expirationDate : undefined,
-				}),
-			},
-		});
+		return redirect(
+			safeRedirect(redirectTo),
+			combineResponseInits(
+				{
+					headers: {
+						"set-cookie": await sessionStorage.commitSession(cookieSession, {
+							expires: remember ? session.expirationDate : undefined,
+						}),
+					},
+				},
+				responseInit,
+			),
+		);
 	}
 }
 

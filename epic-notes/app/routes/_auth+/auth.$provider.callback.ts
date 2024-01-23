@@ -51,15 +51,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		});
 	}
 
+	// Connection exists already? Make a new session
 	if (existingConnection) {
-		const session = await prisma.session.create({
-			select: { id: true, expirationDate: true, userId: true },
-			data: {
-				expirationDate: getSessionExpirationDate(),
-				userId: existingConnection.userId,
-			},
-		});
-		return handleNewSession({ request, session, remember: true });
+		return makeSession({ request, userId: existingConnection.userId });
 	}
 
 	const verifySession = await verifySessionStorage.getSession(
@@ -82,4 +76,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 			"set-cookie": await verifySessionStorage.commitSession(verifySession),
 		},
 	});
+}
+
+async function makeSession(
+	{
+		request,
+		userId,
+		redirectTo,
+	}: { request: Request; userId: string; redirectTo?: string | null },
+	responseInit?: ResponseInit,
+) {
+	redirectTo ??= "/";
+	const session = await prisma.session.create({
+		select: { id: true, expirationDate: true, userId: true },
+		data: {
+			expirationDate: getSessionExpirationDate(),
+			userId,
+		},
+	});
+	return handleNewSession(
+		{ request, session, redirectTo, remember: true },
+		responseInit,
+	);
 }
