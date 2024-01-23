@@ -244,6 +244,6 @@ Unfortunately, we override the `expires` time in our `cookieSession` when we com
 1. [Remix Auth](./17.oauth/01.remix-auth/)
 2. [GitHub Strategy](./17.oauth/02.flow/)
 3. [Mock GitHub OAuth](./17.oauth/03.mock/)
-4. Connection Model
+4. [Connection Model](./17.oauth/04.schema/)
 
 TODO: 📝 Elaboration
