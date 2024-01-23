@@ -251,6 +251,6 @@ TODO: 📝 Elaboration
 ## [18. Connection Errors](./18.provider-errors/)
 
 1. [Auth Errors](./18.provider-errors/01.auth-error/)
-2. Connection Exceptions
+2. [Connection Exceptions](./18.provider-errors/02.connection-error/)
 
 TODO: 📝 Elaboration

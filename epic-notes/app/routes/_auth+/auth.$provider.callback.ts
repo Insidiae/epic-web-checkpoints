@@ -1,6 +1,7 @@
 import { type LoaderFunctionArgs } from "@remix-run/node";
-import { authenticator } from "#app/utils/auth.server.ts";
+import { authenticator, getUserId } from "#app/utils/auth.server.ts";
 import { ProviderNameSchema, providerLabels } from "#app/utils/connections.tsx";
+import { prisma } from "#app/utils/db.server.ts";
 import { redirectWithToast } from "#app/utils/toast.server.ts";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -9,9 +10,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	const label = providerLabels[providerName];
 
 	const profile = await authenticator
-		.authenticate(providerName, request, {
-			throwOnError: true,
-		})
+		.authenticate(providerName, request, { throwOnError: true })
 		.catch(async error => {
 			console.error(error);
 			throw await redirectWithToast("/login", {
@@ -21,7 +20,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 			});
 		});
 
-	console.log({ profile });
+	const existingConnection = await prisma.connection.findUnique({
+		select: { userId: true },
+		where: {
+			providerName_providerId: { providerName, providerId: profile.id },
+		},
+	});
+
+	const userId = await getUserId(request);
+
+	if (existingConnection && userId) {
+		throw await redirectWithToast("/settings/profile/connections", {
+			title: "Already Connected",
+			description:
+				existingConnection.userId === userId
+					? `Your "${profile.username}" ${label} account is already connected.`
+					: `The "${profile.username}" ${label} account is already connected to another account.`,
+		});
+	}
 
 	throw await redirectWithToast("/login", {
 		title: "Auth Success (jk)",
