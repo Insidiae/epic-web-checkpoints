@@ -287,6 +287,9 @@ export default function LoginPage() {
 								</StatusButton>
 							</div>
 						</Form>
+						<div className="mt-5 flex flex-col gap-5 border-b-2 border-t-2 border-border py-3">
+							{/* TODO: add the ProviderConnectionForm here */}
+						</div>
 						<div className="flex items-center justify-center gap-2 pt-6">
 							<span className="text-muted-foreground">New here?</span>
 							<Link
