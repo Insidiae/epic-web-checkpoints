@@ -1,0 +1,38 @@
+[
+  {
+    "code": "MOCK_GITHUB_CODE_KODY",
+    "accessToken": "MOCK_GITHUB_CODE_KODY_mock_access_token",
+    "profile": {
+      "login": "Colin.McLaughlin27",
+      "id": "MOCK_GITHUB_CODE_KODY_profile_id",
+      "name": "Claude Raynor DVM",
+      "avatar_url": "https://github.com/ghost.png",
+      "emails": [
+        "Mikel_Dibbert82@yahoo.com",
+        "Lauren.Schumm41@hotmail.com",
+        "Brannon_Thompson@hotmail.com"
+      ]
+    },
+    "emails": [
+      {
+        "email": "Mikel_Dibbert82@yahoo.com",
+        "verified": false,
+        "primary": false,
+        "visibility": "public"
+      },
+      {
+        "email": "Lauren.Schumm41@hotmail.com",
+        "verified": true,
+        "primary": false,
+        "visibility": null
+      },
+      {
+        "email": "Brannon_Thompson@hotmail.com",
+        "verified": true,
+        "primary": true,
+        "visibility": "public"
+      }
+    ],
+    "primaryEmail": "Brannon_Thompson@hotmail.com"
+  }
+]
