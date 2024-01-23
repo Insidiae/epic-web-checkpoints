@@ -1,24 +1,13 @@
 import { conform, useForm } from "@conform-to/react";
 import { getFieldsetConstraint, parse } from "@conform-to/zod";
-import {
-	json,
-	redirect,
-	type LoaderFunctionArgs,
-	type ActionFunctionArgs,
-} from "@remix-run/node";
+import { json, redirect, type DataFunctionArgs } from "@remix-run/node";
 import { Form, Link, useActionData } from "@remix-run/react";
-import { AuthenticityTokenInput } from "remix-utils/csrf/react";
 import { z } from "zod";
 import { ErrorList, Field } from "#app/components/forms.tsx";
 import { Button } from "#app/components/ui/button.tsx";
 import { Icon } from "#app/components/ui/icon.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
-import {
-	getPasswordHash,
-	requireUserId,
-	verifyUserPassword,
-} from "#app/utils/auth.server.ts";
-import { validateCSRF } from "#app/utils/csrf.server.ts";
+import { getPasswordHash, requireUserId } from "#app/utils/auth.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { useIsPending } from "#app/utils/misc.tsx";
 import { PasswordSchema } from "#app/utils/user-validation.ts";
@@ -27,9 +16,8 @@ export const handle = {
 	breadcrumb: <Icon name="dots-horizontal">Password</Icon>,
 };
 
-const ChangePasswordForm = z
+const CreatePasswordForm = z
 	.object({
-		currentPassword: PasswordSchema,
 		newPassword: PasswordSchema,
 		confirmNewPassword: PasswordSchema,
 	})
@@ -43,46 +31,29 @@ const ChangePasswordForm = z
 		}
 	});
 
-async function requirePassword(userId: string) {
+async function requireNoPassword(userId: string) {
 	const password = await prisma.password.findUnique({
 		select: { userId: true },
 		where: { userId },
 	});
-	if (!password) {
-		throw redirect("/settings/profile/password/create");
+	if (password) {
+		throw redirect("/settings/profile/password");
 	}
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request }: DataFunctionArgs) {
 	const userId = await requireUserId(request);
-	await requirePassword(userId);
+	await requireNoPassword(userId);
 	return json({});
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request }: DataFunctionArgs) {
 	const userId = await requireUserId(request);
-	await requirePassword(userId);
+	await requireNoPassword(userId);
 	const formData = await request.formData();
-	await validateCSRF(formData, request.headers);
 	const submission = await parse(formData, {
 		async: true,
-		schema: ChangePasswordForm.superRefine(
-			async ({ currentPassword, newPassword }, ctx) => {
-				if (currentPassword && newPassword) {
-					const user = await verifyUserPassword(
-						{ id: userId },
-						currentPassword,
-					);
-					if (!user) {
-						ctx.addIssue({
-							path: ["currentPassword"],
-							code: "custom",
-							message: "Incorrect password.",
-						});
-					}
-				}
-			},
-		),
+		schema: CreatePasswordForm,
 	});
 	// clear the payload so we don't send the password back to the client
 	submission.payload = {};
@@ -102,7 +73,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		where: { id: userId },
 		data: {
 			password: {
-				update: {
+				create: {
 					hash: await getPasswordHash(newPassword),
 				},
 			},
@@ -112,28 +83,22 @@ export async function action({ request }: ActionFunctionArgs) {
 	return redirect(`/settings/profile`);
 }
 
-export default function ChangePasswordRoute() {
+export default function CreatePasswordRoute() {
 	const actionData = useActionData<typeof action>();
 	const isPending = useIsPending();
 
 	const [form, fields] = useForm({
 		id: "signup-form",
-		constraint: getFieldsetConstraint(ChangePasswordForm),
+		constraint: getFieldsetConstraint(CreatePasswordForm),
 		lastSubmission: actionData?.submission,
 		onValidate({ formData }) {
-			return parse(formData, { schema: ChangePasswordForm });
+			return parse(formData, { schema: CreatePasswordForm });
 		},
 		shouldRevalidate: "onBlur",
 	});
 
 	return (
 		<Form method="POST" {...form.props} className="mx-auto max-w-md">
-			<AuthenticityTokenInput />
-			<Field
-				labelProps={{ children: "Current Password" }}
-				inputProps={conform.input(fields.currentPassword, { type: "password" })}
-				errors={fields.currentPassword.errors}
-			/>
 			<Field
 				labelProps={{ children: "New Password" }}
 				inputProps={conform.input(fields.newPassword, { type: "password" })}
@@ -155,7 +120,7 @@ export default function ChangePasswordRoute() {
 					type="submit"
 					status={isPending ? "pending" : actionData?.status ?? "idle"}
 				>
-					Change Password
+					Create Password
 				</StatusButton>
 			</div>
 		</Form>
