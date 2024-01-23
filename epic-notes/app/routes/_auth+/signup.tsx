@@ -16,6 +16,7 @@ import { GeneralErrorBoundary } from "#app/components/error-boundary.tsx";
 import { ErrorList, Field } from "#app/components/forms.tsx";
 import { StatusButton } from "#app/components/ui/status-button.tsx";
 import { requireAnonymous } from "#app/utils/auth.server.ts";
+import { ProviderConnectionForm } from "#app/utils/connections.tsx";
 import { validateCSRF } from "#app/utils/csrf.server.ts";
 import { prisma } from "#app/utils/db.server.ts";
 import { sendEmail } from "#app/utils/email.server.ts";
@@ -170,6 +171,9 @@ export default function SignupRoute() {
 						Submit
 					</StatusButton>
 				</Form>
+				<div className="mt-5 flex flex-col gap-5 border-b-2 border-t-2 border-border py-3">
+					<ProviderConnectionForm type="Signup" providerName="github" />
+				</div>
 			</div>
 		</div>
 	);
