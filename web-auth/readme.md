@@ -254,3 +254,10 @@ TODO: 📝 Elaboration
 2. [Connection Exceptions](./18.provider-errors/02.connection-error/)
 
 TODO: 📝 Elaboration
+
+## [19. Third Party Login](./19.third-party-login/)
+
+1. [Login](./19.third-party-login/01.login/)
+2. Onboarding
+
+TODO: 📝 Elaboration

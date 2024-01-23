@@ -1,8 +1,13 @@
 import { type LoaderFunctionArgs } from "@remix-run/node";
-import { authenticator, getUserId } from "#app/utils/auth.server.ts";
+import {
+	authenticator,
+	getSessionExpirationDate,
+	getUserId,
+} from "#app/utils/auth.server.ts";
 import { ProviderNameSchema, providerLabels } from "#app/utils/connections.tsx";
 import { prisma } from "#app/utils/db.server.ts";
 import { redirectWithToast } from "#app/utils/toast.server.ts";
+import { handleNewSession } from "./login.tsx";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
 	const providerName = ProviderNameSchema.parse(params.provider);
@@ -37,6 +42,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 					? `Your "${profile.username}" ${label} account is already connected.`
 					: `The "${profile.username}" ${label} account is already connected to another account.`,
 		});
+	}
+
+	if (existingConnection) {
+		const session = await prisma.session.create({
+			select: { id: true, expirationDate: true, userId: true },
+			data: {
+				expirationDate: getSessionExpirationDate(),
+				userId: existingConnection.userId,
+			},
+		});
+		return handleNewSession({ request, session, remember: true });
 	}
 
 	throw await redirectWithToast("/login", {
