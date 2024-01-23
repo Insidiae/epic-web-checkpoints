@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  username String  @unique
+  name     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  image    UserImage?
+  password Password?
+  notes    Note[]
+  // 🐨 once you have the roles model, add a "roles" property that's an array of Roles
+  roles    Role[]
+}
+
+model Note {
+  id      String @id @default(cuid())
+  title   String
+  content String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ownerId String
+
+  images NoteImage[]
+
+  // non-unique foreign key
+  @@index([ownerId])
+  // This helps our order by in the user search a LOT
+  @@index([ownerId, updatedAt])
+}
+
+model NoteImage {
+  id          String  @id @default(cuid())
+  altText     String?
+  contentType String
+  blob        Bytes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  noteId String
+
+  // non-unique foreign key
+  @@index([noteId])
+}
+
+model UserImage {
+  id          String  @id @default(cuid())
+  altText     String?
+  contentType String
+  blob        Bytes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @unique
+}
+
+model Password {
+  hash String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId String @unique
+}
+
+// 🐨 add a Permission model that has the following properties:
+model Permission {
+  // - id (as usual)
+  id          String @id @default(cuid())
+  // - action - a required string (will be one of create, read, update, delete)
+  action      String // e.g. create, read, update, delete
+  // - entity - a required string (will be one of user or note)
+  entity      String // e.g. note, user, etc.
+  // - access - a required string (will be one of own or any)
+  access      String // e.g. own or any
+  // - description - a required string (which can default to "")
+  description String @default("")
+
+  // - createdAt (as usual)
+  createdAt DateTime @default(now())
+  // - updatedAt (as usual)
+  updatedAt DateTime @updatedAt
+
+  // - roles - an array of Roles
+  roles Role[]
+
+  // @@unique constraint of action, entity, and access
+  // 📜 https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#unique-1
+  @@unique([action, entity, access])
+}
+
+// 🐨 add a Role model that has an
+model Role {
+  // - id (as usual)
+  id          String @id @default(cuid())
+  // - name - a required string
+  name        String @unique
+  // - description - a required string (which can default to "")
+  description String @default("")
+  // - createdAt (as usual)
+
+  createdAt DateTime @default(now())
+  // - updatedAt (as usual)
+  updatedAt DateTime @updatedAt
+
+  // - users - an array of Users
+  users       User[]
+  // - permissions - an array of Permissions
+  permissions Permission[]
+}
