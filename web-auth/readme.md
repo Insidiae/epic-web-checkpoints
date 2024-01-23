@@ -261,3 +261,10 @@ TODO: 📝 Elaboration
 2. [Onboarding](./19.third-party-login/02.onboarding/)
 
 TODO: 📝 Elaboration
+
+## [20. Connection Management](./20.connection/)
+
+1. [Existing User](./20.connection/01.existing-user/)
+2. Add Connection
+
+TODO: 📝 Elaboration
