@@ -265,6 +265,6 @@ TODO: 📝 Elaboration
 ## [20. Connection Management](./20.connection/)
 
 1. [Existing User](./20.connection/01.existing-user/)
-2. Add Connection
+2. [Add Connection](./20.connection/02.connect/)
 
 TODO: 📝 Elaboration
