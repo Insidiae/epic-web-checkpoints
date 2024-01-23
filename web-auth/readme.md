@@ -238,3 +238,12 @@ Finally, we'll handle the case where the user wants to disable 2FA. This simply 
 To make things easier for the user, we'll also adjust the verification logic a bit to check if the user succesfully verified via 2FA just recently (e.g. in the last two hours). If the user recently verified via 2FA, we'll simply skip the usual verification step. We'll also extract this process into a reusable function, and use the same logic before actually disabling the user's 2FA in their profile settings.
 
 Unfortunately, we override the `expires` time in our `cookieSession` when we commit the session after checking the recent verification. Since this `expires` time is only visible to the browser itself, we'll need to save it as an additional property in the `cookieSession` itself so that we can re-set the `expires` time correctly whenever we commit the session. This can be annoying to do every time we have to call `sessionStorage.commitSession()` in other functions, so instead what we'll do is override the `sessionStorage.commitSession()` method itself to set the correct `expires` value along with the other options it has been called with.
+
+## [17. OAuth](./17.oauth/)
+
+1. [Remix Auth](./17.oauth/01.remix-auth/)
+2. GitHub Strategy
+3. Mock GitHub OAuth
+4. Connection Model
+
+TODO: 📝 Elaboration
