@@ -273,6 +273,6 @@ TODO: 📝 Elaboration
 
 1.  [Pass Redirect URL](./21.redirect-cookie/01.pass/)
 2.  [Set Cookie](./21.redirect-cookie/02.cookie/)
-3.  Redirect
+3.  [Redirect](./21.redirect-cookie/03.redirect/)
 
 TODO: 📝 Elaboration
