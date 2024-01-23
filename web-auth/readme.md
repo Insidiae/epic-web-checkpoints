@@ -246,28 +246,45 @@ Unfortunately, we override the `expires` time in our `cookieSession` when we com
 3. [Mock GitHub OAuth](./17.oauth/03.mock/)
 4. [Connection Model](./17.oauth/04.schema/)
 
-TODO: 📝 Elaboration
+Another increasingly common method of authentication is by using third party authentication providers, usually via [OAuth](https://oauth.net/2/). Essentially, we redirect the user to the third party provider, get back an access token once the user successfuly authenticates via that provider, and then we use that token to authenticate the user in our app.
+
+This process will be done in parts across these last few exercises. In this exercise, we focus mainly on getting the provider connections set up so the user can redirect to a provider and get an access token back once the provider resolves the authentication. We'll be using the [`remix-auth`](https://github.com/sergiodxa/remix-auth) package along with the [`remix-auth-github`](https://github.com/sergiodxa/remix-auth-github) package to let the user login or signup using GitHub as the provider.
+
+We'll also set up some mocks similar to what we did previously for the Resend API, but this time we'll mock the GitHub API both so that we can test the GitHub provider authentication without having to actually connect to the GitHub API in development mode, and so that we can store some mock user data to be used in development mode. Here, we'll also leverage `msw`'s `passthrough()` utility function to, well, pass things through to the real GitHub API when we deploy in production (or as long as our `GITHUB_CLIENT_ID` environment variable isn't prefixed with `MOCK_`).
+
+Finally, we'll add a new `Connection` model to our Prisma schema so that we can associate users with these third party provider connections. This allows us to add more OAuth providers (and potentially even Single Sign On (SSO)!) in the future, and let the user use multiple different providers as a means to log in.
+
+We initially did most of this logic within the hardcoded `/auth/github` and `/auth/github/callback` routes, but at the end of the exercise 🧝‍♂️ Kellie extracts this logic into more generic `/auth/$provider` and `/auth/$provider/callback` routes, and separated some logic involving the `remix-auth` authenticators from `auth.server.ts` into separate files specific for each provider (again, so we can more easily plug and play other third-party providers in the future!). 🧝‍♂️ Kellie also set up some pages we'll be dealing with in the next exercise, such as the `/onboarding/$provider` route and the `/settings/profile/connections` route.
 
 ## [18. Connection Errors](./18.provider-errors/)
 
 1. [Auth Errors](./18.provider-errors/01.auth-error/)
 2. [Connection Exceptions](./18.provider-errors/02.connection-error/)
 
-TODO: 📝 Elaboration
+Next, we'll handle some different cases in which third party authentication might fail. Some common cases are:
+
+- The third party provider themselves encountered an error
+- The user is trying to connect with an account that is already being used
+
+To handle these cases, first we'll add a generic error message in the case where the third party provider themselves had an error. Next, we'll check whether we already have the connection the user is trying to connect with in the database. We also display different error messages depending on whether the connected account belongs to the current user or to another user.
 
 ## [19. Third Party Login](./19.third-party-login/)
 
 1. [Login](./19.third-party-login/01.login/)
 2. [Onboarding](./19.third-party-login/02.onboarding/)
 
-TODO: 📝 Elaboration
+Next, we'll implement the main logic of authenticating the user in our app once the third party provider resolves with an access token.
+
+Since there are now multiple ways for the user to log in, it's helpful to separate some logic (specifically handling the new session) into a reusable function so that we can call it when we log the user in via our `/auth/$provider/callback` route. We'll also want to handle the case where the user logs in via a third party provider, but that porvider account isn't associated with an existing user in our app. In that case we'll send them into an onboarding route to finish creating a new account. We'll also take advantage of the data returned by the provider to helpfully prefill some of the fields in the onboarding form. We'll also create a new `signupWithConnection()` utility in our `auth.server.ts` that follows the same logic as the `signup()` utility but provides different data for creating the new session (e.g. there's no `password` field but we do have `connections` and other data that came fromthe provider such as `imageUrl`).
 
 ## [20. Connection Management](./20.connection/)
 
 1. [Existing User](./20.connection/01.existing-user/)
 2. [Add Connection](./20.connection/02.connect/)
 
-TODO: 📝 Elaboration
+Next, we'll handle the case where the user tries to log in with a provider, the provider account isn't connected with a user but the email address for that provider account matches an existing user account. In this case, we'll simply add the provider account to the existing user's `connections`.
+
+While we're at it, we'll also let a logged in user add a new connection from their `/settings/profile/connections` page. This follows the same logic to add a new connection, but in another case where there's a user currently logged in but the provider account isn't connected yet (if there is a user logged in and the provider account is already connected, we've already handled that in an earlier exercise!).
 
 ## [21. Redirect Cookie](./21.redirect-cookie/)
 
@@ -275,4 +292,6 @@ TODO: 📝 Elaboration
 2.  [Set Cookie](./21.redirect-cookie/02.cookie/)
 3.  [Redirect](./21.redirect-cookie/03.redirect/)
 
-TODO: 📝 Elaboration
+Finally, we'll tie up some remaining loose ends regarding third party provider authentication. 🧝‍♂️ Kellie has created another page to let the user create a password if their only authentication methods are via third party providers at the end of the previous exercise, so all that's left to do is to preserve the `redirectTo` URL when the user authenticates via a third party provider.
+
+First, we'll simply add a hidden input that stores the value of the `redirectTo` prop passed to the `<ProviderConnectionForm />`. Next, we'll store the `redirectTo` value in a cookie which we'll append to the headers of the `Response` objects that are `throw`n to our `/auth/$provider` actions. We can then use that `redirectTo` cookie to safely redirect the user to the correct route after they log in!
