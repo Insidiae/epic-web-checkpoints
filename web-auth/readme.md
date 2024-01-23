@@ -247,3 +247,10 @@ Unfortunately, we override the `expires` time in our `cookieSession` when we com
 4. [Connection Model](./17.oauth/04.schema/)
 
 TODO: 📝 Elaboration
+
+## [18. Connection Errors](./18.provider-errors/)
+
+1. [Auth Errors](./18.provider-errors/01.auth-error/)
+2. Connection Exceptions
+
+TODO: 📝 Elaboration
