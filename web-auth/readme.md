@@ -175,21 +175,33 @@ We also set up a new `/onboarding` route to handle the next step after the user 
 2. [Generate TOTP](./11.verification/02.totp/)
 3. [Verify Code](./11.verification/03.verify-code/)
 
-TODO: 📝 Elaboration
+Now that we've set up both ends of our new signup flow, let's add the actual verification to ensure that the user who signs up actually owns the email address they used to sign up. We'll be using our email setup from the previous exercise to actually send verification codes to the user's email address, which they'll use to proceed to the next step of the onboarding process. For this exercise (and the later exercises in this workshop that also deal with verification), we'll be using Time-based One-Time Passwords (TOTP) via the [`@epic-web/totp`](https://github.com/epicweb-dev/totp/) package.
+
+First, we'll create a new `Verification` model in our Prisma schema to represent verification sessions. The model stores the various config options used to generate and verify the codes via `@epic-web/totp`, the verification `target` (e.g. a user's email, username, id, etc.), the verification `type` (what the verification is for, like onboarding/password reset/2FA/etc.), and an `expiresAt` time to determine when it's safe to delete the verification.
+
+Once our new model is set up, we can finish wiring up the first step of the signup process to generate the TOTP code we'll send for the verification email. For the email verification code, we'll move a bit away from the default configs and set a `period` of 10 minutes and use the SHA256 `algorithm` to generate the TOTP. After generating the TOTP, we'll also save the verification to our database and redirect the user to the newly created (Thanks 🧝‍♂️ Kellie!) `/verify` route where the user can input the verification code we just sent to their email.
+
+Once that's done, we'll finish up the code verification logic in the `/verify` route. We'll retrieve the verification from the database and use the configs to verify the code the user has submitted. If the submitted code is valid, we have confirmed the user's ownership of the email address and now we can safely delete the verification from the database and redirect the user back to the next step of the onboarding process.
 
 ## [12. Reset Password](./12.reset-password/)
 
 1. [Handle Verification](./12.reset-password/01.handle-verification/)
 2. [Reset Password](./12.reset-password/02.reset-password/)
 
-TODO: 📝 Elaboration
+With our verification flow set up, we can use the same logic to verify the user's identity in other important routes. Helpfully, 🧝‍♂️ Kellie has extracted out some of the code we wrote in the previous exercise into separate functions to make it easier to reuse the same logic in different verification flows. in this exercise, we'll use these new functions to add a verification check between the `/forgot-password` and `/reset-password` routes.
+
+With the way our `/verify` route is set up, we have a `switch` block to call different functions that handle each of the possible verification `type`s. Thus we can simply add `"reset-password"` to the list of possible `type`s and write another function to handle verifications for our `/reset-password` route. As for the `target`, we'll let the user provide either their username or their email address.
+
+After we've verified the user successfully, we'll finish implementing the main logic for resetting the user's password. This is simply a matter of updating the database with the new password the user has submitted. Since we're using cookies to store the verification data, we can secure this process even more by making sure we have a successful user verification data stored in the cookie before we let their user change their password!
 
 ## [13. Change Email](./13.change-email/01.totp/)
 
 1. [Generate TOTP](./13.change-email/01.totp/)
 2. [Handle Verification](./13.change-email/02.handle-verification/)
 
-TODO: 📝 Elaboration
+We can also use our `/verify` route setup to verify the user's identity before letting them change their email address. Again, since we've already extracted this logic into reusable functions, we can simply add another `type` to the list and write up another `handleVerification()` function containing the verification logic for the `/settings/profile/change-email` route.
+
+The implementation for the `handleVerification()` is a bit different this time however, since the email changing logic is happening all in the `/settings/profile/change-email`. So we'll `prepareVerification()` once the user submits their new email address, redirect to `/verify` after sending the verification email, verify the code the user submits, then perform the actual email change within `handleVerification()` before redirecting the user back to `/settings/profile`.
 
 ## [14. Enable Two Factor Auth](./14.enable-2fa/)
 
@@ -197,14 +209,22 @@ TODO: 📝 Elaboration
 2. [QR Code](./14.enable-2fa/02.qr-code/)
 3. [Verify Code](./14.enable-2fa/03.verify/)
 
-TODO: 📝 Elaboration
+Two-Factor Authentication (2FA) is an increasingly popular way to secure a user's account even more. In addition to requiring the user's username/email and password, it adds an additional step that requires the user to enter another code (usually generated from another device) to verify their identity before successfully logging in. Essentially, this uses the same logic as our TOTP verification steps to prevent malicious users from signing into an account they don't own even if they somehow correctly input their victim's username/email and password.
+
+We've already set up the main part of the verification flow in the previous exercises, but this time we'll use the default 30-second expiration `period` when generating TOTPs and we'll also let the user use their own 2FA authenticator app instead of sending the codes via email. These 2FA verifications also won't have an expiration time, instead it'll stay active as long as the user has enabled 2FA in their profile settings.
+
+For this exercise, we'll focus on initializing the 2FA verification when the user enables in their profile settings. One interesting part of this exercise is that we'll set up a temporary `2fa-verify` verification where we require the user to connect with their 2FA authenticator app for generating TOTPs. We'll be using the same `@epic-web/totp` package to generate the initial TOTP and the auth URI, and we'll also generate a QR code containing the auth URI for the user's 2FA authenticator app to scan. Once that's done, we'll also verify that everything is working by having the user input the generated TOTP from their 2FA authenticator app, verify it on our end, and only then can we safely create the `2fa` verification object which we'll use again the next time the user logs in.
 
 ## [15. Verify 2FA Code](./15.verify-2fa/)
 
 1. [Unverified Session](./15.verify-2fa/01.unverified/)
 2. [Handle Verification](./15.verify-2fa/02.verify/)
 
-TODO: 📝 Elaboration
+Now that we've enabled 2FA authentication in the user's profile settings, the user will be prompted to enter the verification code from their 2FA verification app every time they log in. In this exercise, we'll wire up the actual logic to verify the 2FA verification codes, and we'll also change the login flow a bit to account for this extra 2FA verification step.
+
+First, we'll adjust the `/login` route's logic a bit to check if the user has 2FA enabled. If they don't, we'll simply proceed as we've done before, but if they _do_ have 2FA enabled, we'll create an unverified session before redirecting the user to `/verify` where they'll input the verification code from their 2FA verification app.
+
+In the `/verify` route, we'll simply add another verification `type` and write another `handleVerification()` function from the `/login` route. After verifying the code, `handleVerification()` will upgrade the user's session from `verifySession` into the `cookieSession` cookie we've been using. Also, we'll skip deleting the user's `verification` object since it still needs to be used every time the user logs in with 2FA enabled.
 
 ## [16. Disable Two Factor Auth](./16.2fa-check/)
 
@@ -213,4 +233,8 @@ TODO: 📝 Elaboration
 3. [Require Reverification](./16.2fa-check/03.require-reverify/)
 4. [Cookie Expiration Override](./16.2fa-check/04.expiration/)
 
-TODO: 📝 Elaboration
+Finally, we'll handle the case where the user wants to disable 2FA. This simply follows the same verification flow as before, since we'll want to verify the user one last time to make sure it really is the user making the decision to disable their 2FA.
+
+To make things easier for the user, we'll also adjust the verification logic a bit to check if the user succesfully verified via 2FA just recently (e.g. in the last two hours). If the user recently verified via 2FA, we'll simply skip the usual verification step. We'll also extract this process into a reusable function, and use the same logic before actually disabling the user's 2FA in their profile settings.
+
+Unfortunately, we override the `expires` time in our `cookieSession` when we commit the session after checking the recent verification. Since this `expires` time is only visible to the browser itself, we'll need to save it as an additional property in the `cookieSession` itself so that we can re-set the `expires` time correctly whenever we commit the session. This can be annoying to do every time we have to call `sessionStorage.commitSession()` in other functions, so instead what we'll do is override the `sessionStorage.commitSession()` method itself to set the correct `expires` value along with the other options it has been called with.
